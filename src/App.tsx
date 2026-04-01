@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Menu, X, Calendar, Users, MapPin, 
   Star, Clock, Info, 
   Calculator, Map as MapIcon,
-  Plane, Car, Mail
+  Plane, Car, Mail,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format } from 'date-fns';
 
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
+import { FOOD_DATA, type FoodItem } from './foodData';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,8 +27,8 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Golf', path: '/golf' },
-    { name: 'Stay', path: '/stay' },
+    { name: 'Golf Courses', path: '/golf' },
+    { name: 'Stay/Food', path: '/stay' },
     { name: 'Pricing', path: '/pricing' },
     { name: 'Booking', path: '/booking' },
   ];
@@ -34,8 +36,16 @@ const Navbar = () => {
   return (
     <nav className="fixed top-8 left-0 w-full z-50 px-6">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link to="/" className="text-3xl serif font-bold tracking-tighter text-white flex items-center gap-2">
-          <span className="text-lime">gol</span>fee
+        <Link to="/" className="text-4xl font-sans font-bold tracking-tighter flex items-center gap-4">
+          <img 
+            src="src/logo.png" 
+            alt="Logo" 
+            className="h-20 w-20 object-contain"
+          />
+          <div className="flex flex-col gap-3">
+            <span className="text-lime leading-none">야나골</span>
+            <span className="text-white leading-none">골프클럽</span>
+          </div>
         </Link>
         
         <div className="hidden md:flex items-center gap-3 glass p-2 rounded-full">
@@ -53,11 +63,7 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="hidden md:block">
-          <Link to="/booking" className="px-6 py-2 rounded-full border border-white/30 text-white text-sm hover:bg-white/10 transition-all">
-            Contact US
-          </Link>
-        </div>
+        {/* Removed Contact US button */}
 
         <button className="md:hidden text-white" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -96,7 +102,17 @@ const Footer = () => (
   <footer className="bg-ink text-paper py-20 px-6">
     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
       <div>
-        <h2 className="text-3xl serif italic mb-6">야나골 골프클럽</h2>
+        <h2 className="text-4xl font-sans font-bold italic mb-6 flex items-center gap-4">
+          <img 
+            src="src/logo.png" 
+            alt="Logo" 
+            className="h-16 w-16 object-contain"
+          />
+          <div className="flex flex-col gap-3">
+            <span className="text-lime leading-none">야나골</span>
+            <span className="text-white leading-none">골프클럽</span>
+          </div>
+        </h2>
         <p className="text-paper/80 text-sm leading-relaxed max-w-xs">
           조호바루 골프 여행의 품격 있는 시작. 
           최고의 숙소와 골프장을 연결하는 프리미엄 커넥트 서비스입니다.
@@ -106,15 +122,15 @@ const Footer = () => (
         <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">Contact</h3>
         <p className="text-lg serif">cskim1747@gmail.com</p>
         <p className="text-xs opacity-80 mt-2">궁금하신 사항은 위 메일로 문의해 주세요</p>
-        <p className="text-sm opacity-80 mt-4">KSL Residence R9, Johor Bahru</p>
+        <p className="text-sm opacity-80 mt-4">야나골 골프클럽</p>
       </div>
       <div>
         <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">Quick Links</h3>
         <div className="flex flex-col gap-2">
           <Link to="/golf" className="hover:underline">Golf Courses</Link>
-          <Link to="/stay" className="hover:underline">Accommodations</Link>
-          <Link to="/pricing" className="hover:underline">Pricing Table</Link>
-          <Link to="/booking" className="hover:underline">Estimated Quote</Link>
+          <Link to="/stay" className="hover:underline">Stay/Food</Link>
+          <Link to="/pricing" className="hover:underline">Pricing</Link>
+          <Link to="/booking" className="hover:underline">Booking</Link>
         </div>
       </div>
     </div>
@@ -126,6 +142,180 @@ const Footer = () => (
 );
 
 // --- Pages ---
+
+const GolfCarousel = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % GOLF_COURSES.length);
+  }, []);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + GOLF_COURSES.length) % GOLF_COURSES.length);
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const interval = setInterval(nextSlide, 10000);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, nextSlide]);
+
+  const course = GOLF_COURSES[currentIndex];
+
+  return (
+    <div className="max-w-7xl w-full relative group">
+      {/* Navigation Arrows */}
+      <button 
+        onClick={() => { prevSlide(); setIsAutoPlaying(false); }}
+        className="absolute -left-16 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all z-20 hidden lg:flex"
+      >
+        <ChevronLeft size={24} />
+      </button>
+      <button 
+        onClick={() => { nextSlide(); setIsAutoPlaying(false); }}
+        className="absolute -right-16 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all z-20 hidden lg:flex"
+      >
+        <ChevronRight size={24} />
+      </button>
+
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={currentIndex}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 glass rounded-[40px] border border-white/10"
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
+          {/* Left Card: Price & Name */}
+          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 flex flex-col justify-between border border-white/10 h-[500px]">
+            <div className="grid grid-cols-3 gap-y-6 gap-x-2">
+              <div className="opacity-40 uppercase tracking-widest text-[10px]"></div>
+              <div className="opacity-40 uppercase tracking-widest text-[10px] text-right">Morning</div>
+              <div className="opacity-40 uppercase tracking-widest text-[10px] text-right">Afternoon</div>
+              
+              <div className="font-bold text-white/60 text-sm flex items-center">주중</div>
+              <div className="text-right">
+                <p className="text-2xl font-bold">RM {course.pricing.weekday.morning}</p>
+                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold">RM {course.pricing.weekday.afternoon}</p>
+                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekday.afternoon * EXCHANGE_RATE).toLocaleString()}</p>
+              </div>
+
+              <div className="font-bold text-white/60 text-sm flex items-center">주말</div>
+              <div className="text-right">
+                <p className="text-2xl font-bold">RM {course.pricing.weekend.morning}</p>
+                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekend.morning * EXCHANGE_RATE).toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold">RM {course.pricing.weekend.afternoon}</p>
+                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekend.afternoon * EXCHANGE_RATE).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="mt-8">
+              <h3 className="serif leading-tight mb-6">
+                {(() => {
+                  const match = course.name.match(/^(.*?)\s*\((.*?)\)$/);
+                  const korean = match ? match[1] : course.name;
+                  const english = match ? `(${match[2]})` : '';
+                  return (
+                    <>
+                      <span className="block mb-2 tracking-tighter text-3xl">
+                        {korean}
+                      </span>
+                      {english && (
+                        <span className="text-xl opacity-50 block font-sans font-light italic">
+                          {english}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </h3>
+              <div className="px-6 py-3 bg-lime/20 text-lime rounded-full text-sm tracking-widest uppercase font-bold inline-block">
+                {course.category}
+              </div>
+            </div>
+          </div>
+
+          {/* Center Card: Image */}
+          <div className="md:col-span-2 relative rounded-[32px] overflow-hidden h-[500px]">
+            <img 
+              src={course.image} 
+              alt={course.name} 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-forest/60 to-transparent" />
+          </div>
+
+          {/* Right Cards: Info & Promotion */}
+          <div className="flex flex-col gap-4 h-[500px]">
+            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 border border-white/10 flex-1 flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <h3 className="text-xl font-medium">Course Info</h3>
+                <div className="w-10 h-10 rounded-full bg-white text-forest flex items-center justify-center">
+                  <Info size={20} />
+                </div>
+              </div>
+              <div className="mt-6 space-y-4">
+                <p className="text-xl opacity-90">{course.holes}홀 • {course.difficulty} 난이도</p>
+                <p className="text-xl opacity-90">{course.nightGolf ? '야간 가능' : '주간 전용'}</p>
+              </div>
+            </div>
+
+            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 border border-white/10 flex-1 flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <h3 className="text-xl font-medium">Promotion</h3>
+                <div className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center">
+                  <Star size={20} fill="currentColor" />
+                </div>
+              </div>
+              <p className="text-xl text-lime font-medium mt-6 leading-relaxed">
+                {course.promotion || '현재 진행중인 프로모션이 없습니다.'}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Mobile Navigation */}
+      <div className="flex justify-center gap-4 mt-6 lg:hidden">
+        <button 
+          onClick={() => { prevSlide(); setIsAutoPlaying(false); }}
+          className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button 
+          onClick={() => { nextSlide(); setIsAutoPlaying(false); }}
+          className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* Pagination Dots */}
+      <div className="flex justify-center gap-2 mt-8">
+        {GOLF_COURSES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setCurrentIndex(i); setIsAutoPlaying(false); }}
+            className={cn(
+              "w-2 h-2 rounded-full transition-all",
+              currentIndex === i ? "bg-lime w-6" : "bg-white/20"
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Home = () => {
   return (
@@ -149,88 +339,25 @@ const Home = () => {
           transition={{ duration: 0.8 }}
           className="max-w-4xl"
         >
-          <h1 className="text-6xl md:text-8xl serif leading-[1.1] mb-8">
-            Curated Sessions for <br />
-            <span className="italic">Every Skill Level</span>
+          <h1 className="text-4xl md:text-6xl font-sans font-bold leading-[1.2] mb-8 tracking-tighter">
+            당신이 꿈꾸던 골프 파라다이스, <br />
+            <span className="text-lime">조호바루.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
-            Book world-class golf courses and professional lessons in just a few clicks. 
-            From tee times to training, everything your need is right here.
+            필드 위 짜릿한 샷과 도심 속 화려한 야경을 동시에 누리는 골프 휴가.
           </p>
           
           <div className="flex flex-wrap justify-center gap-6 mb-24">
             <Link to="/booking" className="btn-primary">
-              Book a Tee Time
+              Booking
             </Link>
             <Link to="/golf" className="btn-secondary glass">
-              Find Golf Lessons
+              Golf Courses
             </Link>
           </div>
         </motion.div>
 
-        {/* Bento Grid Cards */}
-        <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-4 gap-4 p-4 glass rounded-[40px]">
-          {/* Rating Card */}
-          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 flex flex-col justify-between border border-white/10">
-            <div>
-              <p className="text-3xl font-bold mb-2">4.9</p>
-              <div className="flex gap-1 text-lime mb-4">
-                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill="currentColor" />)}
-              </div>
-              <p className="text-[10px] tracking-widest uppercase opacity-60">Based on reviews</p>
-            </div>
-            <div className="mt-8">
-              <h3 className="text-xl serif mb-2">Golf Arena</h3>
-              <p className="text-xs opacity-60">Top-notch quality and service!</p>
-            </div>
-          </div>
-
-          {/* Main Image Card */}
-          <div className="md:col-span-2 relative rounded-[32px] overflow-hidden group">
-            <img 
-              src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&q=80&w=1000" 
-              alt="Golf Ball" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-forest/60 to-transparent" />
-          </div>
-
-          {/* Product Cards */}
-          <div className="space-y-4">
-            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 border border-white/10 relative group cursor-pointer hover:bg-forest/60 transition-all">
-              <div className="flex justify-between items-start mb-12">
-                <h3 className="text-lg font-medium">Putter Golfowy</h3>
-                <div className="w-8 h-8 rounded-full bg-white text-forest flex items-center justify-center">
-                  <Info size={16} />
-                </div>
-              </div>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-3xl font-bold mb-1">$150</p>
-                  <p className="text-[10px] tracking-widest uppercase opacity-60">Relieve Pains</p>
-                </div>
-                <img src="https://picsum.photos/seed/putter/200/200" alt="Putter" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
-              </div>
-            </div>
-
-            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 border border-white/10 relative group cursor-pointer hover:bg-forest/60 transition-all">
-              <div className="flex justify-between items-start mb-12">
-                <h3 className="text-lg font-medium">Golf Balls</h3>
-                <div className="w-8 h-8 rounded-full bg-white text-forest flex items-center justify-center">
-                  <Info size={16} />
-                </div>
-              </div>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-3xl font-bold mb-1">$40</p>
-                  <p className="text-[10px] tracking-widest uppercase opacity-60">Relieve Plains</p>
-                </div>
-                <img src="https://picsum.photos/seed/balls/200/200" alt="Balls" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <GolfCarousel />
       </section>
     </div>
   );
@@ -244,9 +371,9 @@ const Golf = () => {
     : GOLF_COURSES.filter(c => c.category === filter);
 
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto">
-      <header className="mb-20">
-        <h1 className="text-7xl serif mb-8">Johor Bahru <span className="italic">Golf</span></h1>
+    <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
+      <header className="mb-12">
+        <h1 className="text-7xl serif mb-8">Johor Bahru <span className="italic">Golf Courses</span></h1>
         <div className="flex flex-wrap gap-4">
           {['All', 'Premium', 'Value', 'Accessibility'].map((f) => (
             <button 
@@ -304,9 +431,6 @@ const Golf = () => {
 
             {/* Detailed Pricing Table */}
             <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] tracking-widest uppercase opacity-40">Visitor Rates (Foreigner)</span>
-              </div>
               <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
                 <span>Type</span>
                 <span>Morning</span>
@@ -331,7 +455,7 @@ const Golf = () => {
             <div className="mt-6 pt-6 border-t border-white/10">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference (Visitor)</p>
+                  <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
                   <p className="text-xl serif">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
                 </div>
               </div>
@@ -343,72 +467,162 @@ const Golf = () => {
   );
 };
 
+const STAY_CATEGORIES = [
+  { id: '4', label: '4 PERSONS (2BR)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=4" },
+  { id: '6', label: '6 PERSONS (3BR)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=6" },
+  { id: '8', label: '8 PERSONS (4BR/PENT)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=8" },
+];
+
+const FoodCard = ({ item }: { item: FoodItem }) => (
+  <div className="glass rounded-[40px] overflow-hidden border border-white/10 flex flex-col h-full">
+    <div className="aspect-[16/9] overflow-hidden relative">
+      <img 
+        src={item.image} 
+        alt={item.name} 
+        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+        referrerPolicy="no-referrer"
+      />
+      <div className="absolute top-4 left-4 px-4 py-1 bg-lime text-forest rounded-full text-[10px] font-bold uppercase tracking-widest">
+        {item.category}
+      </div>
+    </div>
+    <div className="p-8 flex-1 flex flex-col">
+      <div className="mb-6">
+        <h3 className="text-2xl serif mb-2">{item.name}</h3>
+        {item.tagline && <p className="text-sm italic text-lime opacity-80 mb-4">{item.tagline}</p>}
+        <p className="text-sm opacity-70 leading-relaxed">{item.description}</p>
+      </div>
+
+      <div className="space-y-6 flex-1">
+        <div>
+          <h4 className="text-xs uppercase tracking-widest opacity-40 mb-3 flex items-center gap-2">
+            <Star size={12} className="text-lime" /> Signature Dishes
+          </h4>
+          <ul className="space-y-2">
+            {item.signatureDishes.map((dish, i) => (
+              <li key={i} className="text-sm opacity-80 flex gap-2">
+                <span className="text-lime">•</span> {dish}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-xs uppercase tracking-widest opacity-40 mb-3 flex items-center gap-2">
+            <Info size={12} className="text-lime" /> Visitor Tips
+          </h4>
+          <ul className="space-y-2">
+            {item.visitorTips.map((tip, i) => (
+              <li key={i} className="text-sm opacity-80 flex gap-2 italic">
+                <span className="text-lime">→</span> {tip}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-1 gap-3">
+        {item.quickInfo.map((info, i) => (
+          <div key={i} className="flex justify-between text-[11px]">
+            <span className="opacity-40 uppercase tracking-wider">{info.label}</span>
+            <span className="text-right opacity-80">{info.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const Stay = () => {
-  const [capacity, setCapacity] = useState<4 | 6 | 8>(4);
+  const [activeStayCat, setActiveStayCat] = useState('4');
+  const [activeCategory, setActiveCategory] = useState<'All' | 'Seremban' | 'KSL' | 'Nearby' | 'Market'>('All');
   
-  // Sorted by rating (already sorted in constants, but ensuring here)
-  const filteredUnits = STAY_UNITS
-    .filter(u => u.capacity === capacity)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10);
+  const filteredFood = FOOD_DATA.filter(item => 
+    activeCategory === 'All' ? true : item.category === activeCategory
+  );
+
+  const activeStay = STAY_CATEGORIES.find(c => c.id === activeStayCat);
 
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto">
-      <header className="mb-20">
-        <h1 className="text-7xl serif mb-8">KSL Residence <span className="italic">R9</span></h1>
+    <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
+      {/* Stay Section */}
+      <header className="mb-12">
+        <h1 className="text-7xl serif mb-8">KSL Residence <span className="italic text-lime">R9</span></h1>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
           "KSL 몰과 연결되어 라운딩 후 쇼핑·마사지·식사가 한 번에 가능! Residence R9 홈스테이 추천 리스트"
         </p>
-        <div className="flex flex-wrap gap-4">
-          {[4, 6, 8].map((c) => (
+        
+        <div className="flex flex-wrap gap-4 mb-12">
+          {STAY_CATEGORIES.map((cat) => (
             <button 
-              key={c}
-              onClick={() => setCapacity(c as any)}
+              key={cat.id}
+              onClick={() => setActiveStayCat(cat.id)}
               className={cn(
                 "pill-nav",
-                capacity === c ? "active-pill" : "text-white/60"
+                activeStayCat === cat.id ? "active-pill" : "text-white/60"
               )}
             >
-              {c} PERSONS ({c === 4 ? '2BR' : c === 6 ? '3BR' : '4BR/PENT'})
+              {cat.label}
             </button>
           ))}
         </div>
 
-        <div className="mt-12 p-8 glass rounded-[32px] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-left">
-            <h4 className="text-xl serif mb-1">실시간 필터링 검색</h4>
-            <p className="text-xs opacity-80">에어비앤비에서 현재 예약 가능한 모든 {capacity}인 숙소를 실시간으로 확인하세요.</p>
+        <div className="p-8 glass rounded-[32px] border border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <h4 className="text-xl serif mb-2">실시간 필터링 검색</h4>
+            <p className="text-sm opacity-60">
+              에어비앤비에서 현재 예약 가능한 모든 {activeStayCat}인 숙소를 실시간으로 확인하세요.
+            </p>
           </div>
           <a 
-            href={`https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=${capacity}`}
+            href={activeStay?.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-primary"
+            className="px-8 py-4 bg-lime text-forest rounded-full font-bold hover:bg-lime/90 transition-all whitespace-nowrap"
           >
-            {capacity}인 숙소 전체 보기
+            {activeStayCat}인 숙소 전체 보기
           </a>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-        {filteredUnits.map((unit) => (
-          <div key={unit.id} className="group">
-            <a 
-              href={unit.airbnbUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block aspect-[4/3] rounded-3xl overflow-hidden mb-6 relative border border-white/10"
+      {/* Food Section */}
+      <header className="mb-12 pt-12 border-t border-white/10">
+        <h1 className="text-7xl serif mb-8">Food</h1>
+        <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
+          "조호바루와 세렘반의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
+        </p>
+        
+        <div className="flex flex-wrap gap-4 mb-12">
+          {['All', 'Nearby', 'Market', 'Seremban', 'KSL'].map((cat) => (
+            <button 
+              key={cat}
+              onClick={() => setActiveCategory(cat as any)}
+              className={cn(
+                "pill-nav",
+                activeCategory === cat ? "active-pill" : "text-white/60"
+              )}
             >
-              <img src={unit.image} alt={unit.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-              <div className="absolute bottom-4 right-4 px-3 py-1 bg-lime text-forest rounded-full text-[10px] flex items-center gap-1 font-bold">
-                <Star size={10} fill="currentColor" />
-                {unit.rating.toFixed(2)}
-              </div>
-            </a>
-            <h3 className="text-xl serif mb-2">{unit.title}</h3>
-            <div className="flex justify-between items-center">
-              <p className="text-lg serif italic opacity-90">RM {unit.pricePerNight} / night</p>
-            </div>
+              {cat === 'All' ? '전체보기' : 
+               cat === 'Nearby' ? '주변 맛집' : 
+               cat === 'Market' ? '야시장' : 
+               cat === 'Seremban' ? '세렘반 TOP 10' : 'KSL 시티몰 TOP 10'}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-8 glass rounded-[32px] border border-white/10">
+          <h4 className="text-xl serif mb-2">현지 미식 가이드</h4>
+          <p className="text-sm opacity-60 max-w-3xl">
+            말레이시아 골프 여행의 완성은 맛있는 음식입니다. 조호바루 시내의 활기찬 야시장부터 세렘반의 전통 있는 노포까지, 
+            현지인들이 줄 서서 먹는 진짜 맛집들을 엄선했습니다. 각 매장의 대표 메뉴와 방문 팁을 확인해보세요.
+          </p>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {filteredFood.map((item) => (
+          <div key={item.id}>
+            <FoodCard item={item} />
           </div>
         ))}
       </div>
@@ -420,9 +634,9 @@ const Pricing = () => {
   const currentDate = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto">
-      <header className="mb-16">
-        <h1 className="text-7xl serif mb-8">Pricing <span className="italic">Table</span></h1>
+    <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
+      <header className="mb-12">
+        <h1 className="text-7xl serif mb-8">Pricing</h1>
         <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8">
           <div className="space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">Current Date</p>
@@ -525,11 +739,11 @@ const Booking = () => {
   const totalMYR = calculateTotal();
 
   return (
-    <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto">
-      <header className="mb-20">
+    <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
+      <header className="mb-12">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-7xl serif mb-4">예상 <span className="italic">견적</span></h1>
+            <h1 className="text-7xl serif mb-4">Booking</h1>
             <p className="text-sm opacity-40 tracking-widest uppercase">
               {format(new Date(), 'yyyy.MM.dd')} | Exchange Rate: 1 MYR = {EXCHANGE_RATE} KRW
             </p>
@@ -660,7 +874,7 @@ const Booking = () => {
             <div className="mt-10 p-4 bg-white/5 rounded-2xl text-[10px] opacity-60 leading-relaxed">
               <p>• 위 견적은 선택하신 골프장과 스케줄에 따른 예상 금액입니다.</p>
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
-              <p>• 상세 예약 확정은 이메일 문의를 통해 진행해 주세요.</p>
+              <p>• 상세 예약 확정은 이메일(cskim1747@gmail.com) 문의를 통해 진행해 주세요.</p>
             </div>
           </div>
         </div>

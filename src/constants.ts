@@ -249,7 +249,7 @@ export const STAY_UNITS: StayUnit[] = [
   // 4 Persons (10 units)
   ...Array.from({ length: 10 }).map((_, i) => ({
     id: `stay-4-${i}`,
-    title: `Residence R9 Luxury 2BR Unit #${i + 101}`,
+    title: `야나골골프클럽 Luxury 2BR Unit #${i + 101}`,
     capacity: 4 as const,
     type: '2BR' as const,
     pricePerNight: 180 + i * 5,
@@ -260,7 +260,7 @@ export const STAY_UNITS: StayUnit[] = [
   // 6 Persons (10 units)
   ...Array.from({ length: 10 }).map((_, i) => ({
     id: `stay-6-${i}`,
-    title: `Residence R9 Premium 3BR Unit #${i + 201}`,
+    title: `야나골골프클럽 Premium 3BR Unit #${i + 201}`,
     capacity: 6 as const,
     type: '3BR' as const,
     pricePerNight: 280 + i * 10,
@@ -271,7 +271,7 @@ export const STAY_UNITS: StayUnit[] = [
   // 8 Persons (10 units)
   ...Array.from({ length: 10 }).map((_, i) => ({
     id: `stay-8-${i}`,
-    title: `Residence R9 Penthouse 4BR Unit #${i + 301}`,
+    title: `야나골골프클럽 Penthouse 4BR Unit #${i + 301}`,
     capacity: 8 as const,
     type: '4BR/Penthouse' as const,
     pricePerNight: 450 + i * 20,
