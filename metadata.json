@@ -1,0 +1,7 @@
+{
+  "name": "야나골 골프클럽",
+  "description": "조호바루 골프 여행의 시작, 야나골 골프클럽. 프리미엄 숙소와 골프장 예약 서비스.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
