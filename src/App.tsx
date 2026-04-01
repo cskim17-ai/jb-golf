@@ -38,7 +38,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="text-4xl font-sans font-bold tracking-tighter flex items-center gap-4">
           <img 
-            src="src/logo.png" 
+            src="./logo.png" 
             alt="Logo" 
             className="h-20 w-20 object-contain"
           />
@@ -104,7 +104,7 @@ const Footer = () => (
       <div>
         <h2 className="text-4xl font-sans font-bold italic mb-6 flex items-center gap-4">
           <img 
-            src="src/logo.png" 
+            src="./logo.png" 
             alt="Logo" 
             className="h-16 w-16 object-contain"
           />
