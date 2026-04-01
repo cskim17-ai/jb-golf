@@ -24,40 +24,42 @@ const Navbar = () => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'HOME', path: '/' },
-    { name: 'GOLF', path: '/golf' },
-    { name: 'STAY', path: '/stay' },
-    { name: 'PRICING', path: '/pricing' },
-    { name: 'BOOKING', path: '/booking' },
+    { name: 'Home', path: '/' },
+    { name: 'Golf', path: '/golf' },
+    { name: 'Stay', path: '/stay' },
+    { name: 'Pricing', path: '/pricing' },
+    { name: 'Booking', path: '/booking' },
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-paper/60 backdrop-blur-md border-b border-ink/5">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/" className="text-2xl serif font-bold tracking-tighter">
-          야나골 골프클럽
+    <nav className="fixed top-8 left-0 w-full z-50 px-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <Link to="/" className="text-3xl serif font-bold tracking-tighter text-white flex items-center gap-2">
+          <span className="text-lime">gol</span>fee
         </Link>
         
-        <div className="hidden md:flex items-center gap-12">
+        <div className="hidden md:flex items-center gap-3 glass p-2 rounded-full">
           {navLinks.map((link) => (
             <Link 
               key={link.path} 
               to={link.path}
               className={cn(
-                "text-xs tracking-widest font-medium transition-colors hover:text-accent",
-                location.pathname === link.path ? "text-ink" : "text-ink/60"
+                "pill-nav border-none",
+                location.pathname === link.path ? "active-pill" : "text-white/80"
               )}
             >
               {link.name}
             </Link>
           ))}
-          <div className="px-6 py-2 bg-ink text-paper rounded-full text-xs font-medium flex items-center gap-2">
-            <Mail size={14} />
-            cskim1747@gmail.com
-          </div>
         </div>
 
-        <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
+        <div className="hidden md:block">
+          <Link to="/booking" className="px-6 py-2 rounded-full border border-white/30 text-white text-sm hover:bg-white/10 transition-all">
+            Contact US
+          </Link>
+        </div>
+
+        <button className="md:hidden text-white" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
@@ -68,14 +70,17 @@ const Navbar = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-20 left-0 w-full bg-paper border-b border-ink/5 p-6 md:hidden flex flex-col gap-4"
+            className="absolute top-20 left-6 right-6 bg-forest/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:hidden flex flex-col gap-4"
           >
             {navLinks.map((link) => (
               <Link 
                 key={link.path} 
                 to={link.path} 
                 onClick={() => setIsOpen(false)}
-                className="text-lg serif"
+                className={cn(
+                  "text-xl serif",
+                  location.pathname === link.path ? "text-lime" : "text-white"
+                )}
               >
                 {link.name}
               </Link>
@@ -123,74 +128,105 @@ const Footer = () => (
 // --- Pages ---
 
 const Home = () => {
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-
   return (
-    <div className="pt-20">
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center overflow-hidden">
-        <motion.div 
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&q=80&w=2000" 
+          alt="Golf Course" 
+          className="w-full h-full object-cover opacity-60"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-forest/40 via-forest/60 to-forest" />
+      </div>
+
+      {/* Hero Content */}
+      <section className="relative z-10 pt-48 pb-20 px-6 flex flex-col items-center text-center">
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="z-10"
+          className="max-w-4xl"
         >
-          <span className="text-xs tracking-[0.3em] uppercase opacity-80 mb-6 block">Premium Golf & Stay</span>
-          <p className="text-2xl md:text-4xl serif italic opacity-90 max-w-2xl mx-auto mb-12">
-            "조호바루 골프 여행의 시작"
+          <h1 className="text-6xl md:text-8xl serif leading-[1.1] mb-8">
+            Curated Sessions for <br />
+            <span className="italic">Every Skill Level</span>
+          </h1>
+          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
+            Book world-class golf courses and professional lessons in just a few clicks. 
+            From tee times to training, everything your need is right here.
           </p>
           
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/booking" className="px-10 py-4 bg-ink text-paper rounded-full text-sm font-medium hover:bg-accent transition-all transform hover:scale-105">
-              Approach the club
+          <div className="flex flex-wrap justify-center gap-6 mb-24">
+            <Link to="/booking" className="btn-primary">
+              Book a Tee Time
+            </Link>
+            <Link to="/golf" className="btn-secondary glass">
+              Find Golf Lessons
             </Link>
           </div>
         </motion.div>
 
-        {/* Floating Images */}
-        <div className="absolute bottom-0 left-0 w-full flex justify-center gap-4 px-6 translate-y-1/4 opacity-40 pointer-events-none">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="w-48 h-64 rounded-t-full bg-ink/5 overflow-hidden">
-              <img src={`https://picsum.photos/seed/hero${i}/400/600`} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        {/* Bento Grid Cards */}
+        <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-4 gap-4 p-4 glass rounded-[40px]">
+          {/* Rating Card */}
+          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 flex flex-col justify-between border border-white/10">
+            <div>
+              <p className="text-3xl font-bold mb-2">4.9</p>
+              <div className="flex gap-1 text-lime mb-4">
+                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill="currentColor" />)}
+              </div>
+              <p className="text-[10px] tracking-widest uppercase opacity-60">Based on reviews</p>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="mt-8">
+              <h3 className="text-xl serif mb-2">Golf Arena</h3>
+              <p className="text-xs opacity-60">Top-notch quality and service!</p>
+            </div>
+          </div>
 
-      {/* Quick Search */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-8 border border-ink/10 rounded-3xl glass">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] tracking-widest uppercase opacity-40">Date</label>
-              <div className="flex items-center gap-3 text-lg serif">
-                <Calendar size={20} className="opacity-40" />
-                <input 
-                  type="date" 
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)}
-                  className="bg-transparent outline-none cursor-pointer w-full"
-                />
+          {/* Main Image Card */}
+          <div className="md:col-span-2 relative rounded-[32px] overflow-hidden group">
+            <img 
+              src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&q=80&w=1000" 
+              alt="Golf Ball" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-forest/60 to-transparent" />
+          </div>
+
+          {/* Product Cards */}
+          <div className="space-y-4">
+            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 border border-white/10 relative group cursor-pointer hover:bg-forest/60 transition-all">
+              <div className="flex justify-between items-start mb-12">
+                <h3 className="text-lg font-medium">Putter Golfowy</h3>
+                <div className="w-8 h-8 rounded-full bg-white text-forest flex items-center justify-center">
+                  <Info size={16} />
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold mb-1">$150</p>
+                  <p className="text-[10px] tracking-widest uppercase opacity-60">Relieve Pains</p>
+                </div>
+                <img src="https://picsum.photos/seed/putter/200/200" alt="Putter" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] tracking-widest uppercase opacity-40">Guests</label>
-              <div className="flex items-center gap-3 text-lg serif">
-                <Users size={20} className="opacity-40" />
-                <select className="bg-transparent outline-none appearance-none cursor-pointer w-full">
-                  <option>4 Persons</option>
-                  <option>6 Persons</option>
-                  <option>8 Persons</option>
-                </select>
+
+            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-8 border border-white/10 relative group cursor-pointer hover:bg-forest/60 transition-all">
+              <div className="flex justify-between items-start mb-12">
+                <h3 className="text-lg font-medium">Golf Balls</h3>
+                <div className="w-8 h-8 rounded-full bg-white text-forest flex items-center justify-center">
+                  <Info size={16} />
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] tracking-widest uppercase opacity-40">Golf Course</label>
-              <div className="flex items-center gap-3 text-lg serif">
-                <MapPin size={20} className="opacity-40" />
-                <select className="bg-transparent outline-none appearance-none cursor-pointer w-full">
-                  {GOLF_COURSES.map(g => <option key={g.id}>{g.name}</option>)}
-                </select>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold mb-1">$40</p>
+                  <p className="text-[10px] tracking-widest uppercase opacity-60">Relieve Plains</p>
+                </div>
+                <img src="https://picsum.photos/seed/balls/200/200" alt="Balls" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
               </div>
             </div>
           </div>
@@ -217,8 +253,8 @@ const Golf = () => {
               key={f}
               onClick={() => setFilter(f as any)}
               className={cn(
-                "px-6 py-2 rounded-full text-xs tracking-widest transition-all border",
-                filter === f ? "bg-ink text-paper border-ink" : "border-ink/10 hover:border-ink/40"
+                "pill-nav",
+                filter === f ? "active-pill" : "text-white/60"
               )}
             >
               {f.toUpperCase()}
@@ -240,10 +276,10 @@ const Golf = () => {
               href={course.websiteUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative"
+              className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
             >
               <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-              <div className="absolute top-6 left-6 px-4 py-1 bg-paper/80 backdrop-blur-sm rounded-full text-[10px] tracking-widest uppercase">
+              <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
                 {course.category}
               </div>
             </a>
@@ -259,7 +295,7 @@ const Golf = () => {
                 <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
               </div>
               {course.promotion && (
-                <div className="flex items-center gap-2 text-accent font-medium">
+                <div className="flex items-center gap-2 text-lime font-medium">
                   <Star size={14} fill="currentColor" />
                   <span>Promotion: {course.promotion}</span>
                 </div>
@@ -267,11 +303,11 @@ const Golf = () => {
             </div>
 
             {/* Detailed Pricing Table */}
-            <div className="bg-ink/5 rounded-2xl p-4 mb-6 text-xs">
-              <div className="flex justify-between items-center mb-2">
+            <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
+              <div className="flex justify-between items-center mb-4">
                 <span className="text-[10px] tracking-widest uppercase opacity-40">Visitor Rates (Foreigner)</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 border-b border-ink/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
+              <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
                 <span>Type</span>
                 <span>Morning</span>
                 <span>Afternoon</span>
@@ -286,13 +322,13 @@ const Golf = () => {
                 <span>RM {course.pricing.weekend.morning}</span>
                 <span>RM {course.pricing.weekend.afternoon}</span>
               </div>
-              <div className="mt-2 pt-2 border-t border-ink/10 flex justify-between opacity-60">
+              <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
                 <span>Caddy Fee: RM {course.pricing.caddyFee}</span>
                 <span>Senior: -RM {course.pricing.seniorDiscount}</span>
               </div>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-ink/5">
+            <div className="mt-6 pt-6 border-t border-white/10">
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference (Visitor)</p>
@@ -329,8 +365,8 @@ const Stay = () => {
               key={c}
               onClick={() => setCapacity(c as any)}
               className={cn(
-                "px-8 py-3 rounded-full text-xs tracking-widest transition-all border",
-                capacity === c ? "bg-ink text-paper border-ink" : "border-ink/20 hover:border-ink/50"
+                "pill-nav",
+                capacity === c ? "active-pill" : "text-white/60"
               )}
             >
               {c} PERSONS ({c === 4 ? '2BR' : c === 6 ? '3BR' : '4BR/PENT'})
@@ -338,7 +374,7 @@ const Stay = () => {
           ))}
         </div>
 
-        <div className="mt-12 p-8 bg-ink/5 rounded-[32px] border border-ink/10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mt-12 p-8 glass rounded-[32px] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-left">
             <h4 className="text-xl serif mb-1">실시간 필터링 검색</h4>
             <p className="text-xs opacity-80">에어비앤비에서 현재 예약 가능한 모든 {capacity}인 숙소를 실시간으로 확인하세요.</p>
@@ -347,7 +383,7 @@ const Stay = () => {
             href={`https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=${capacity}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-8 py-3 bg-ink text-paper rounded-full text-xs font-medium hover:bg-accent transition-all whitespace-nowrap"
+            className="btn-primary"
           >
             {capacity}인 숙소 전체 보기
           </a>
@@ -361,10 +397,10 @@ const Stay = () => {
               href={unit.airbnbUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="block aspect-[4/3] rounded-3xl overflow-hidden mb-6 relative"
+              className="block aspect-[4/3] rounded-3xl overflow-hidden mb-6 relative border border-white/10"
             >
               <img src={unit.image} alt={unit.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-              <div className="absolute bottom-4 right-4 px-3 py-1 bg-ink text-paper rounded-full text-[10px] flex items-center gap-1">
+              <div className="absolute bottom-4 right-4 px-3 py-1 bg-lime text-forest rounded-full text-[10px] flex items-center gap-1 font-bold">
                 <Star size={10} fill="currentColor" />
                 {unit.rating.toFixed(2)}
               </div>
@@ -387,7 +423,7 @@ const Pricing = () => {
     <div className="pt-40 pb-32 px-6 max-w-7xl mx-auto">
       <header className="mb-16">
         <h1 className="text-7xl serif mb-8">Pricing <span className="italic">Table</span></h1>
-        <div className="flex flex-wrap justify-between items-end gap-6 border-b border-ink/10 pb-8">
+        <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8">
           <div className="space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">Current Date</p>
             <p className="text-2xl serif">{currentDate}</p>
@@ -399,10 +435,10 @@ const Pricing = () => {
         </div>
       </header>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto glass rounded-[40px] p-8 border border-white/10">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-ink/20 text-[10px] tracking-widest uppercase opacity-40">
+            <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
               <th className="py-4 font-medium">Golf Course</th>
               <th className="py-4 font-medium">Day Type</th>
               <th className="py-4 font-medium">Morning (RM)</th>
@@ -414,7 +450,7 @@ const Pricing = () => {
           <tbody className="text-sm">
             {GOLF_COURSES.map((course) => (
               <React.Fragment key={course.id}>
-                <tr className="border-b border-ink/5 hover:bg-ink/[0.02] transition-colors">
+                <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                   <td rowSpan={2} className="py-6 font-serif text-lg pr-8 align-top">
                     {course.name}
                     <div className="text-[10px] tracking-widest uppercase opacity-40 font-sans mt-1">
@@ -427,7 +463,7 @@ const Pricing = () => {
                   <td className="py-4 font-medium">{course.pricing.weekday.afternoon}</td>
                   <td className="py-4 opacity-60">₩{(course.pricing.weekday.afternoon * EXCHANGE_RATE).toLocaleString()}</td>
                 </tr>
-                <tr className="border-b border-ink/10 hover:bg-ink/[0.02] transition-colors">
+                <tr className="border-b border-white/10 hover:bg-white/[0.02] transition-colors">
                   <td className="py-4 opacity-60">Weekend</td>
                   <td className="py-4 font-medium">{course.pricing.weekend.morning}</td>
                   <td className="py-4 opacity-60">₩{(course.pricing.weekend.morning * EXCHANGE_RATE).toLocaleString()}</td>
@@ -440,7 +476,7 @@ const Pricing = () => {
         </table>
       </div>
 
-      <div className="mt-12 p-8 bg-ink/5 rounded-3xl border border-ink/5">
+      <div className="mt-12 p-8 glass rounded-3xl border border-white/10">
         <h4 className="text-xs tracking-widest uppercase opacity-40 mb-4">Additional Information</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm opacity-70">
           <p>• 위 요금은 외국인 방문객(Visitor) 기준 요금입니다.</p>
@@ -525,10 +561,10 @@ const Booking = () => {
                   key={course.id}
                   onClick={() => toggleCourse(course.id)}
                   className={cn(
-                    "p-4 rounded-2xl border text-left transition-all",
+                    "p-6 rounded-[32px] border text-left transition-all",
                     selectedCourses.includes(course.id) 
-                      ? "bg-ink text-paper border-ink" 
-                      : "border-ink/10 hover:border-ink/30"
+                      ? "bg-lime text-forest border-lime font-bold" 
+                      : "glass border-white/10 hover:border-white/30"
                   )}
                 >
                   <p className="text-sm font-medium">{course.name}</p>
@@ -545,24 +581,24 @@ const Booking = () => {
                 {selectedCourses.map(id => {
                   const course = GOLF_COURSES.find(c => c.id === id);
                   return (
-                    <div key={id} className="p-6 border border-ink/10 rounded-3xl flex flex-wrap gap-8 items-center justify-between">
+                    <div key={id} className="p-6 glass border border-white/10 rounded-[32px] flex flex-wrap gap-8 items-center justify-between">
                       <p className="serif text-lg">{course?.name}</p>
                       <div className="flex gap-4">
                         <select 
                           value={options[id]?.day} 
                           onChange={(e) => updateOption(id, 'day', e.target.value)}
-                          className="bg-transparent border-b border-ink/20 py-1 text-xs outline-none"
+                          className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
                         >
-                          <option value="weekday">Weekday</option>
-                          <option value="weekend">Weekend</option>
+                          <option value="weekday" className="bg-forest">Weekday</option>
+                          <option value="weekend" className="bg-forest">Weekend</option>
                         </select>
                         <select 
                           value={options[id]?.time} 
                           onChange={(e) => updateOption(id, 'time', e.target.value)}
-                          className="bg-transparent border-b border-ink/20 py-1 text-xs outline-none"
+                          className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
                         >
-                          <option value="morning">Morning</option>
-                          <option value="afternoon">Afternoon</option>
+                          <option value="morning" className="bg-forest">Morning</option>
+                          <option value="afternoon" className="bg-forest">Afternoon</option>
                         </select>
                       </div>
                     </div>
@@ -575,11 +611,11 @@ const Booking = () => {
 
         {/* Receipt Area */}
         <div className="relative">
-          <div className="sticky top-40 bg-paper p-10 rounded-[40px] shadow-2xl shadow-ink/5 border border-ink/10 overflow-hidden max-h-[calc(100vh-12rem)] flex flex-col">
-            <div className="absolute top-0 left-0 w-full h-2 bg-accent shrink-0" />
-            <div className="flex justify-between items-start mb-8 border-b border-ink/10 pb-4 shrink-0">
+          <div className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 overflow-hidden max-h-[calc(100vh-12rem)] flex flex-col">
+            <div className="absolute top-0 left-0 w-full h-2 bg-lime shrink-0" />
+            <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 shrink-0">
               <h2 className="text-3xl serif">Receipt Summary</h2>
-              <span className="text-[10px] tracking-widest uppercase bg-ink/5 px-3 py-1 rounded-full opacity-60">캐디피/팁 제외</span>
+              <span className="text-[10px] tracking-widest uppercase bg-lime text-forest px-3 py-1 rounded-full font-bold">캐디피/팁 제외</span>
             </div>
             
             <div className="space-y-6 mb-8 overflow-y-auto pr-2 custom-scrollbar flex-grow">
@@ -610,18 +646,18 @@ const Booking = () => {
               )}
             </div>
 
-            <div className="border-t-2 border-dashed border-ink/10 pt-6 space-y-4">
+            <div className="border-t-2 border-dashed border-white/10 pt-6 space-y-4">
               <div className="flex justify-between items-center">
                 <p className="text-xs tracking-widest uppercase opacity-40">Subtotal (MYR)</p>
                 <p className="text-xl serif">RM {totalMYR}</p>
               </div>
-              <div className="flex justify-between items-center text-accent">
+              <div className="flex justify-between items-center text-lime">
                 <p className="text-xs tracking-widest uppercase font-bold">Total (KRW)</p>
                 <p className="text-3xl serif font-bold">₩{(totalMYR * EXCHANGE_RATE).toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="mt-10 p-4 bg-ink/5 rounded-2xl text-[10px] opacity-60 leading-relaxed">
+            <div className="mt-10 p-4 bg-white/5 rounded-2xl text-[10px] opacity-60 leading-relaxed">
               <p>• 위 견적은 선택하신 골프장과 스케줄에 따른 예상 금액입니다.</p>
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
               <p>• 상세 예약 확정은 이메일 문의를 통해 진행해 주세요.</p>
@@ -637,7 +673,7 @@ const Booking = () => {
 
 export default function App() {
   return (
-    <Router>
+    <Router basename="/jb-golf">
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">

@@ -5,16 +5,17 @@
   --font-serif: "Cormorant Garamond", serif;
   --font-sans: "Inter", sans-serif;
   
-  --color-paper: #f8f7f2; /* Warm parchment base */
-  --color-ink: #1a1c1a;   /* Deep charcoal with a hint of green */
-  --color-accent: #2d4a2d; /* Rich forest green */
-  --color-gold: #a68a56;   /* Muted, professional gold */
+  --color-paper: #f8f7f2;
+  --color-ink: #1a1c1a;
+  --color-forest: #2d4a2d;
+  --color-lime: #39d353;
+  --color-gold: #a68a56;
 }
 
 @layer base {
   body {
-    @apply text-ink font-sans antialiased min-h-screen;
-    background: #f8f7f2; /* Solid warm background for better readability */
+    @apply text-white font-sans antialiased min-h-screen;
+    background: #2d4a2d; /* Forest green background as per image */
   }
   
   h1, h2, h3, h4, .serif {
@@ -23,9 +24,25 @@
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.pill-nav {
+  @apply px-6 py-2 rounded-full border border-white/20 hover:bg-white/10 transition-all text-sm;
+}
+
+.active-pill {
+  @apply bg-lime text-forest border-lime font-medium;
+}
+
+.btn-primary {
+  @apply px-8 py-3 rounded-full bg-lime text-forest font-semibold hover:opacity-90 transition-all;
+}
+
+.btn-secondary {
+  @apply px-8 py-3 rounded-full border border-white/30 hover:bg-white/10 transition-all;
 }
 
 .oval-image {
