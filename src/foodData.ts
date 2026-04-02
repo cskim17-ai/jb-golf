@@ -10,7 +10,7 @@ export interface FoodItem {
     value: string;
   }[];
   image: string;
-  category: 'Seremban' | 'KSL' | 'Nearby' | 'Market';
+  category: 'LocalTop10' | 'KSL' | 'Nearby' | 'Market';
 }
 
 export const FOOD_DATA: FoodItem[] = [
@@ -64,189 +64,195 @@ export const FOOD_DATA: FoodItem[] = [
     image: 'https://picsum.photos/seed/pasarkarat/800/600',
     category: 'Market'
   },
-  // Seremban TOP 10
   {
-    id: 'seremban-1',
-    name: 'Empayar Seremban Siew Pow (엠파이어 세렘반 슈포)',
-    description: '세렘반에 오면 가장 먼저 들러야 할 성지. 산 위에 성처럼 지어져 있어 뷰도 좋고, 세렘반의 명물인 \'슈포\'를 대량으로 구워내는 본점입니다.',
+    id: 'local-1',
+    name: 'Kam Long Ah Zai Curry Fish Head (금롱 커리 피쉬 헤드)',
+    tagline: '30년 전통, 조호바루 시내를 지켜온 전설적인 커리 생선머리',
+    description: '30년 넘게 조호바루 시내(City Centre)를 지켜온 전설적인 곳입니다. 아침부터 셔터가 올라가기 전 줄을 서야 하며, 단 하나의 메뉴 \'커리 생선머리\'로 빌딩을 세웠다고 할 만큼 유명합니다.',
     signatureDishes: [
-      'Chicken/Pork Siew Pow: 바삭한 페이스트리와 달콤 짭짤한 고기 양념.',
-      'Baked Crab: 특제 소스를 발라 구운 게 요리.'
+      'Curry Fish Head: 뚝배기에 담겨 나오는 진하고 매콤한 커리 국물에 신선한 도미 머리, 유부, 야채가 가득합니다.'
     ],
     visitorTips: [
-      '선물용 박스 포장이 잘 되어 있습니다.',
-      '대형 레스토랑이라 단체 방문에도 좋습니다.'
+      '빵을 찍어 먹거나 밥에 비벼 먹으면 밥도둑이 따로 없습니다.',
+      '메뉴가 하나뿐이라 자리에 앉으면 인원수대로 바로 주문이 들어가는 노포의 카리스마가 있습니다.'
     ],
     quickInfo: [
-      { label: '위치', value: 'Jalan Besar TBK 4, Taman Bukit Kepayang' },
-      { label: '운영시간', value: '09:30 ~ 21:30' }
-    ],
-    image: 'https://picsum.photos/seed/siewpow/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-2',
-    name: 'Yee Kee Beef Noodles (이키 소고기 국수)',
-    description: '1930년대부터 영업을 시작한 세렘반 소고기 국수의 대명사. 3대째 가업을 잇고 있으며 깔끔한 인테리어가 특징입니다.',
-    signatureDishes: [
-      'Dry Beef Noodles: 끈적하고 고소한 땅콩 소스와 진한 소고기 육수.'
-    ],
-    visitorTips: [
-      '소고기 부위별로 선택이 가능합니다.',
-      '회전율이 빨라 대기 시간이 길지 않습니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: '44, Jalan Dato Lee Fong Yee, Bandar Seremban' },
-      { label: '운영시간', value: '08:30 ~ 17:00' }
-    ],
-    image: 'https://picsum.photos/seed/beefnoodle/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-3',
-    name: 'Restoran Sin Tai Chew (신 타이 추)',
-    description: '세렘반 주민들이 아침 식사를 위해 즐겨 찾는 로컬 코피티암. 활기찬 현지 아침 풍경을 느낄 수 있습니다.',
-    signatureDishes: [
-      'Pork Noodles: 맑고 시원한 국물에 돼지고기 완자와 내장이 듬뿍.',
-      'Roti Bakar & Kopi: 숯불 토스트와 진한 말레이시아식 커피.'
-    ],
-    visitorTips: [
-      '전형적인 현지 야외 식당 분위기입니다.',
-      '가성비가 매우 훌륭합니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: '45, Jalan Dato Sheikh Ahmad, Bandar Seremban' },
-      { label: '운영시간', value: '07:00 ~ 14:00' }
-    ],
-    image: 'https://picsum.photos/seed/sintaichew/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-4',
-    name: 'Min Kok Heritage Dim Sum (밍콕 헤리티지 딤섬)',
-    description: '세렘반 최고의 대형 딤섬 레스토랑. 카트를 밀고 다니며 딤섬을 고르는 전통 방식을 경험할 수 있습니다.',
-    signatureDishes: [
-      'Siew Mai & Har Gow: 신선한 새우 하가우와 속이 꽉 찬 샤오마이.',
-      'Lau Sar Bao: 달콤한 커스터드 크림이 흘러나오는 황금 유사빵.'
-    ],
-    visitorTips: [
-      '넓은 주차장을 보유하고 있습니다.',
-      '서비스가 체계적이라 쾌적합니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: '7645, Jalan Labu Lama, 70200 Seremban' },
-      { label: '운영시간', value: '07:30 ~ 15:00, 18:00 ~ 22:00' }
-    ],
-    image: 'https://picsum.photos/seed/minkok/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-5',
-    name: 'Haji Shariff Cendol (하지 샤리프 첸돌)',
-    description: '세렘반 시내 한복판의 전통 빙수 집. 더운 오후에 현지인들이 줄을 서서 먹는 유명한 곳입니다.',
-    signatureDishes: [
-      'Cendol Pulut: 코코넛 밀크, 구라 멜라카 시럽, 쫀득한 찹쌀의 조화.'
-    ],
-    visitorTips: [
-      '회전율이 매우 빠릅니다.',
-      '인도계 스타일 로작(Rojak)과 함께 드셔보세요.'
-    ],
-    quickInfo: [
-      { label: '위치', value: '44, Jalan Yam Tuan, Bandar Seremban' },
-      { label: '운영시간', value: '10:30 ~ 18:00 (금요일 휴무)' }
-    ],
-    image: 'https://picsum.photos/seed/cendol/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-6',
-    name: 'Restoran Nelayan (네라얀 전통 요리)',
-    description: '네게리 셈빌란 주의 전통 요리인 \'Minangkabau\' 스타일을 제대로 구현하는 곳. 진한 커리 요리가 특징입니다.',
-    signatureDishes: [
-      'Masak Lemak Cili Api: 노란 코코넛 커리에 훈제 소고기나 생선을 넣은 요리.'
-    ],
-    visitorTips: [
-      '뷔페 형식(Nasi Campur)으로 운영됩니다.',
-      '원하는 반찬을 골라 먹는 재미가 있습니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: 'KM 5, Jalan Tampin, 70450 Seremban' },
-      { label: '운영시간', value: '08:00 ~ 17:00' }
-    ],
-    image: 'https://picsum.photos/seed/nelayan/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-7',
-    name: 'Restoran Yi Poh (이포 소고기 국수)',
-    description: '이키와 라이벌인 소고기 국수 노포. 면이 조금 더 굵고 쫄깃하며 소스 맛이 진합니다.',
-    signatureDishes: [
-      'Yi Poh Lou Shu Fun: 진한 갈색 소스에 비벼 먹는 \'쥐똥나무 면\'.'
-    ],
-    visitorTips: [
-      '실내 에어컨 시설이 잘 되어 있어 쾌적합니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: '26, Jalan Seng Meng Lee, 70200 Seremban' },
-      { label: '운영시간', value: '07:30 ~ 18:00' }
-    ],
-    image: 'https://picsum.photos/seed/yipoh/800/600',
-    category: 'Seremban'
-  },
-  {
-    id: 'seremban-8',
-    name: 'Kedai Makanan Reen (린 음식점)',
-    description: '세렘반 남부 평점 최고의 말레이 현지 가정식 맛집. 생선 요리와 나시 르막이 일품입니다.',
-    signatureDishes: [
-      'Ikan Bakar: 바나나 잎에 싸서 구운 생선과 매콤한 삼발 소스.'
-    ],
-    visitorTips: [
-      '주변 골프장 라운딩 전후 점심 식사로 인기가 많습니다.'
-    ],
-    quickInfo: [
-      { label: '위치', value: 'Seremban 2 지구 인근' },
+      { label: '위치', value: '7, Jalan Wong Ah Fook, Bandar Johor Bahru (시티스퀘어 인근)' },
       { label: '운영시간', value: '08:00 ~ 16:00' }
     ],
-    image: 'https://picsum.photos/seed/reen/800/600',
-    category: 'Seremban'
+    image: 'https://picsum.photos/seed/kamlong/800/600',
+    category: 'LocalTop10'
   },
   {
-    id: 'seremban-9',
-    name: 'Onn Kee Seremban Bak Kut Teh (온키 바쿠테)',
-    description: '세렘반 최고의 바쿠테 맛집. 한약재 향이 적당해 한국인 입맛에도 잘 맞습니다.',
+    id: 'local-2',
+    name: 'Restoran Todak (토닥 해산물 레스토랑)',
+    tagline: '바다 위 수상 가옥에서 즐기는 낭만적인 해산물 만찬',
+    description: '바다 위에 떠 있는 수상 가옥 형태의 해산물 식당입니다. 30년 전이나 지금이나 조호바루에서 해산물을 하면 가장 먼저 떠올리는 곳으로, 석양을 보며 식사하기 좋습니다.',
     signatureDishes: [
-      'Claypot Bak Kut Teh: 뚝배기에 보글보글 끓여 나오는 국물 바쿠테.',
-      'Dry Bak Kut Teh: 짭조름한 소스에 졸여낸 드라이 버전.'
+      'Black Pepper Crab: 후추 향이 진한 블랙페퍼 크랩.',
+      'Salted Egg Squid: 짭조름한 노른자 소스를 입힌 오징어 튀김.'
     ],
     visitorTips: [
-      '저녁 시간에만 문을 엽니다.',
-      '현지인들의 대표적인 외식 장소입니다.'
+      '직접 수족관에서 해산물을 골라 무게를 달아 주문할 수 있습니다.',
+      '바닷바람을 맞으며 로맨틱한 식사가 가능합니다.'
     ],
     quickInfo: [
-      { label: '위치', value: 'Jalan Temiang, Seremban' },
-      { label: '운영시간', value: '17:00 ~ 22:00' }
+      { label: '위치', value: '1, Kampung Orang Asli, Telok Jawa, Masai (시내에서 차로 20분)' },
+      { label: '운영시간', value: '11:30 ~ 23:30' }
     ],
-    image: 'https://picsum.photos/seed/onnkee/800/600',
-    category: 'Seremban'
+    image: 'https://picsum.photos/seed/todak/800/600',
+    category: 'LocalTop10'
   },
   {
-    id: 'seremban-10',
-    name: 'The Coffeeholic (커피홀릭)',
-    description: '세렘반의 힙한 인스타그램 명소 카페. 직접 로스팅한 원두와 퓨전 케이크가 훌륭합니다.',
+    id: 'local-3',
+    name: 'Hua Mui Restoran (화무이 식당)',
+    tagline: '1946년부터 이어온 조호바루의 역사가 담긴 하이난 코피티암',
+    description: '1946년부터 시작된 조호바루에서 가장 오래된 하이난 스타일 코피티암입니다. 30년 전 제가 어릴 때 먹던 그 맛 그대로를 간직한 곳입니다.',
     signatureDishes: [
-      'Artisan Coffee & Cakes: 수준급 커피와 세렘반 스타일 케이크.'
+      'Hainanese Chicken Chop: 튀긴 닭고기에 하이난 전통 소스와 감자튀김, 완두콩이 곁들여진 정겨운 맛.'
     ],
     visitorTips: [
-      '신도시 지역에 위치해 깨끗하고 트렌디합니다.'
+      '2층짜리 목조 건물에서 풍기는 빈티지한 분위기가 일품입니다.',
+      '무슬림 친구들도 즐겨 찾는 할랄 맛집입니다.'
     ],
     quickInfo: [
-      { label: '위치', value: 'Seremban 2, Uptown Avenue' },
+      { label: '위치', value: '131, Jalan Trus, Bandar Johor Bahru' },
+      { label: '운영시간', value: '08:30 ~ 18:00' }
+    ],
+    image: 'https://picsum.photos/seed/huamui/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-4',
+    name: 'New Meng Kee Steam Fish (뉴 명키 스팀 피쉬)',
+    tagline: '현지인들이 생선 찜 하면 가장 먼저 떠올리는 신선한 중국식 요리',
+    description: '주민들이 \'생선 찜\' 하면 망설임 없이 가는 곳입니다. 신선함이 생명인 중국식 생선 찜 요리가 기가 막히게 잘합니다.',
+    signatureDishes: [
+      'Ginger Paste Steam Fish: 곱게 간 생강 소스를 듬뿍 얹어 쪄낸 민물고기.'
+    ],
+    visitorTips: [
+      '비린내가 전혀 없고 입에서 녹는 식감이 특징입니다.',
+      '가격대가 합리적이고 생선의 종류가 다양해 취향껏 고를 수 있습니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '36, Jalan Dedap 13, Taman Johor Jaya' },
       { label: '운영시간', value: '11:00 ~ 22:00' }
     ],
-    image: 'https://picsum.photos/seed/coffeeholic/800/600',
-    category: 'Seremban'
+    image: 'https://picsum.photos/seed/mengkee/800/600',
+    category: 'LocalTop10'
   },
-  // KSL TOP 10
+  {
+    id: 'local-5',
+    name: 'Restoran Pekin (북경 루)',
+    tagline: '격식 있는 자리와 가족 연회에 최적인 고급 중식 레스토랑',
+    description: '조호바루 주민들이 결혼식이나 가족 연회를 열 때 가장 선호하는 고급 중식 체인입니다. 타만 수테라 지점이 특히 인기가 많습니다.',
+    signatureDishes: [
+      'Peking Duck: 바삭한 껍질이 일품인 북경 오리.',
+      'Suckling Pig: 어린 돼지 구이는 이곳의 자존심입니다.'
+    ],
+    visitorTips: [
+      '격식 있는 자리나 부모님을 모시고 가기에 가장 안전하고 실패 없는 선택지입니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '2, Jalan SUTERA 3, Taman Sutera Utama' },
+      { label: '운영시간', value: '11:00 ~ 22:30' }
+    ],
+    image: 'https://picsum.photos/seed/pekin/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-6',
+    name: 'San Low Seafood (산로 해산물)',
+    tagline: '펠랑기 지역의 터줏대감, 바삭한 볶음면이 일품인 야식 성지',
+    description: '펠랑기(Pelangi) 지역의 터줏대감입니다. 이곳은 특이하게 해산물만큼 유명한 볶음면이 있어 야식 성지로 불립니다.',
+    signatureDishes: [
+      'San Low Fried Bee Hoon: 눌어붙은 듯 바삭하게 볶아낸 \'납작 비훈\' 면 요리.'
+    ],
+    visitorTips: [
+      '겉바속촉의 정석인 비훈 면은 이곳의 시그니처입니다.',
+      '퇴근 후 맥주 한잔하는 현지인들로 항상 북적이는 활기찬 분위기입니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: 'Jalan Biru, Taman Pelangi' },
+      { label: '운영시간', value: '16:30 ~ 01:00 (새벽까지 운영)' }
+    ],
+    image: 'https://picsum.photos/seed/sanlow/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-7',
+    name: 'Re Patisserie (레 파티세리)',
+    tagline: '조호바루에서 가장 감각적인 평점 1위 고급 디저트 샵',
+    description: '최근 몇 년 사이 조호바루 카페 씬(Scene)에서 평점 1위를 달리고 있는 고급 디저트 샵입니다. 매우 감각적인 인테리어를 자랑합니다.',
+    signatureDishes: [
+      'Petit Gateau & Croissants: 프랑스 정통 기술을 가미한 예술 작품 같은 케이크와 크로와상.'
+    ],
+    visitorTips: [
+      '인테리어가 매우 세련되어 사진 찍기 좋으며, 조기에 디저트가 품절되는 경우가 많습니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '77, Jalan Beringin, Taman Melodies' },
+      { label: '운영시간', value: '10:00 ~ 18:00' }
+    ],
+    image: 'https://picsum.photos/seed/repatisserie/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-8',
+    name: 'Restoran Ya Wang (아왕 오리구이)',
+    tagline: '싱가포르 유명 맛집의 원조 격인 비법을 가진 약초 오리구이',
+    description: '시티스퀘어 근처 약초 오리구이 전문점입니다. 싱가포르의 유명 오리구이 맛집의 원조 격인 비법을 가진 곳으로 알려져 있습니다.',
+    signatureDishes: [
+      'Herbal Roast Duck: 은은한 약초 향이 배어있는 오리구이.'
+    ],
+    visitorTips: [
+      '잡내가 전혀 없고 껍질은 얇고 바삭합니다.',
+      '화무이 식당과 가까워 1차, 2차 맛집 탐방 코스로 묶기 좋습니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '28, Jalan Segget, Bandar Johor Bahru' },
+      { label: '운영시간', value: '08:00 ~ 18:00' }
+    ],
+    image: 'https://picsum.photos/seed/yawang/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-9',
+    name: 'Bansan Curry Fish Head (반산 커리 피쉬 헤드)',
+    tagline: '주택가 주민들의 전폭적인 지지를 받는 진짜 로컬 커리 생선머리',
+    description: '1번의 금롱과 쌍벽을 이루는 주민 맛집입니다. 금롱이 시내라면, 이곳은 주택가(Taman Perling) 쪽 주민들의 전폭적인 지지를 받습니다.',
+    signatureDishes: [
+      'Claypot Curry Fish Head: 금롱보다 국물이 조금 더 부드럽고 야채가 풍부한 것이 특징.'
+    ],
+    visitorTips: [
+      '관광객보다 현지 주민 비중이 훨씬 높아 진짜 로컬 분위기를 느낄 수 있습니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '1, Jalan Layang 1, Taman Perling' },
+      { label: '운영시간', value: '08:00 ~ 15:30' }
+    ],
+    image: 'https://picsum.photos/seed/bansan/800/600',
+    category: 'LocalTop10'
+  },
+  {
+    id: 'local-10',
+    name: 'Principle Cafe by T.A.M',
+    tagline: '고전적인 건물을 현대적으로 재해석한 세련된 오아시스 카페',
+    description: '조호바루 구시가지의 고전적인 건물을 현대적으로 재해석한 카페 겸 레스토랑입니다. 깔끔한 퓨전 요리로 평점이 매우 높습니다.',
+    signatureDishes: [
+      'Truffle Mushroom Pasta & Matcha Tart: 깊은 트러플 향의 파스타와 진한 맛의 말차 타르트.'
+    ],
+    visitorTips: [
+      '여성 방문객들에게 특히 인기입니다.',
+      '\'화무이\'나 \'아왕\' 같은 노포들 사이에서 세련된 휴식을 제공합니다.'
+    ],
+    quickInfo: [
+      { label: '위치', value: '82, Jalan Trus, Bandar Johor Bahru' },
+      { label: '운영시간', value: '10:00 ~ 18:00' }
+    ],
+    image: 'https://picsum.photos/seed/principle/800/600',
+    category: 'LocalTop10'
+  },
   {
     id: 'ksl-1',
     name: 'Soon Soon Heng Bak Kut Teh (순순흥 바쿠테)',

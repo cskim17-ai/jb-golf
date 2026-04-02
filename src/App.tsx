@@ -190,60 +190,31 @@ const GolfCarousel = () => {
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
         >
-          {/* Left Card: Price & Name */}
-          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 flex flex-col justify-between border border-white/10 h-[500px]">
-            <div className="grid grid-cols-3 gap-y-6 gap-x-2">
-              <div className="opacity-40 uppercase tracking-widest text-[10px]"></div>
-              <div className="opacity-40 uppercase tracking-widest text-[10px] text-right">Morning</div>
-              <div className="opacity-40 uppercase tracking-widest text-[10px] text-right">Afternoon</div>
-              
-              <div className="font-bold text-white/60 text-sm flex items-center">주중</div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">RM {course.pricing.weekday.morning}</p>
-                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">RM {course.pricing.weekday.afternoon}</p>
-                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekday.afternoon * EXCHANGE_RATE).toLocaleString()}</p>
-              </div>
-
-              <div className="font-bold text-white/60 text-sm flex items-center">주말</div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">RM {course.pricing.weekend.morning}</p>
-                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekend.morning * EXCHANGE_RATE).toLocaleString()}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">RM {course.pricing.weekend.afternoon}</p>
-                <p className="text-[10px] opacity-40 italic">₩{(course.pricing.weekend.afternoon * EXCHANGE_RATE).toLocaleString()}</p>
-              </div>
+          {/* Left Card: Premium Guide */}
+          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] px-4 py-8 border border-white/10 h-[500px] flex flex-col">
+            <div className="mb-5 px-3">
+              <h3 className="text-2xl serif italic text-lime">Premium Guide</h3>
+              <div className="h-px w-12 bg-lime/30 mt-2" />
             </div>
-            <div className="mt-8">
-              <h3 className="serif leading-tight mb-6">
-                {(() => {
-                  const match = course.name.match(/^(.*?)\s*\((.*?)\)$/);
-                  const korean = match ? match[1] : course.name;
-                  const english = match ? `(${match[2]})` : '';
-                  return (
-                    <>
-                      <span className="block mb-2 tracking-tighter text-3xl">
-                        {korean}
-                      </span>
-                      {english && (
-                        <span className="text-xl opacity-50 block font-sans font-light italic">
-                          {english}
-                        </span>
-                      )}
-                    </>
-                  );
-                })()}
-              </h3>
-              <div className="px-6 py-3 bg-lime/20 text-lime rounded-full text-sm tracking-widest uppercase font-bold inline-block">
-                {course.category}
+            <div className="space-y-4 flex-1 px-3">
+              {course.fullDescription.map((sentence, idx) => (
+                <div key={idx} className="flex gap-1.5">
+                  <span className="text-lime/40 font-mono text-[11px] mt-1.5 shrink-0">0{idx + 1}</span>
+                  <p className="text-[17px] leading-relaxed opacity-90 font-light">
+                    {sentence}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-auto pt-4 border-t border-white/5 px-3">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="opacity-40 uppercase tracking-wider">Travel Time</span>
+                <span className="text-lime font-medium">{course.travelTime} min from KSL</span>
               </div>
             </div>
           </div>
 
-          {/* Center Card: Image */}
+          {/* Center Card: Image with Name & Address */}
           <div className="md:col-span-2 relative rounded-[32px] overflow-hidden h-[500px]">
             <img 
               src={course.image} 
@@ -251,32 +222,111 @@ const GolfCarousel = () => {
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-forest/60 to-transparent" />
-          </div>
-
-          {/* Right Cards: Info & Promotion */}
-          <div className="flex flex-col gap-4 h-[500px]">
-            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 border border-white/10 flex-1 flex flex-col justify-between">
-              <div className="flex justify-between items-start">
-                <h3 className="text-xl font-medium">Course Info</h3>
-                <div className="w-10 h-10 rounded-full bg-white text-forest flex items-center justify-center">
-                  <Info size={20} />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
+            
+            {/* Top Left Info */}
+            <div className="absolute top-8 left-8 right-8">
+              <h3 className="serif leading-tight mb-2">
+                {(() => {
+                  const match = course.name.match(/^(.*?)\s*\((.*?)\)$/);
+                  const korean = match ? match[1] : course.name;
+                  const english = match ? `(${match[2]})` : '';
+                  return (
+                    <div className="flex items-baseline gap-3">
+                      <span className="tracking-tighter text-4xl text-white">
+                        {korean}
+                      </span>
+                      {english && (
+                        <span className="text-xl opacity-70 font-sans font-light italic text-white">
+                          {english}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </h3>
+              <div className="flex items-center gap-3 group/map">
+                <div className="flex items-center gap-2 opacity-80 text-sm">
+                  <MapPin size={14} className="text-lime" />
+                  <span className="text-white font-light">{course.address}</span>
                 </div>
-              </div>
-              <div className="mt-6 space-y-4">
-                <p className="text-xl opacity-90">{course.holes}홀 • {course.difficulty} 난이도</p>
-                <p className="text-xl opacity-90">{course.nightGolf ? '야간 가능' : '주간 전용'}</p>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + course.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
+                  title="Google Maps"
+                >
+                  <MapIcon size={14} />
+                </a>
               </div>
             </div>
 
-            <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-10 border border-white/10 flex-1 flex flex-col justify-between">
-              <div className="flex justify-between items-start">
-                <h3 className="text-xl font-medium">Promotion</h3>
-                <div className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center">
-                  <Star size={20} fill="currentColor" />
+            {/* Bottom Tag */}
+            <div className="absolute bottom-8 left-8">
+              <div className="px-6 py-2 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-xs tracking-widest uppercase font-bold">
+                {course.category} Collection
+              </div>
+            </div>
+          </div>
+
+          {/* Right Card: Course Info, Pricing, Promotion */}
+          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-2.5">
+            {/* Course Info */}
+            <div className="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+              <div className="flex justify-between items-center mb-0.5">
+                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Course Info</h3>
+                <Info size={10} className="text-lime opacity-80" />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold text-white">{course.holes}홀</span>
+                <span className="text-[13px] text-white/90 font-medium">{course.difficulty} • {course.nightGolf ? '야간' : '주간'}</span>
+              </div>
+            </div>
+
+            {/* Pricing Info */}
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex-1 flex flex-col justify-center">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Pricing (MYR)</h3>
+                <Calculator size={12} className="text-lime opacity-80" />
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-[12px] text-white/60 font-bold self-end">WEEKDAY</div>
+                  <div className="text-right">
+                    <p className="text-[12px] text-white/60 font-medium">AM</p>
+                    <p className="text-base font-bold text-white">RM {course.pricing.weekday.morning}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[12px] text-white/60 font-medium">PM</p>
+                    <p className="text-base font-bold text-white">RM {course.pricing.weekday.afternoon}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-[12px] text-white/60 font-bold self-end">WEEKEND</div>
+                  <div className="text-right">
+                    <p className="text-[12px] text-white/60 font-medium">AM</p>
+                    <p className="text-base font-bold text-lime">RM {course.pricing.weekend.morning}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[12px] text-white/60 font-medium">PM</p>
+                    <p className="text-base font-bold text-lime">RM {course.pricing.weekend.afternoon}</p>
+                  </div>
+                </div>
+                <div className="pt-3 border-t border-white/10 flex justify-between text-[12px] text-white/70 italic font-medium">
+                  <span>Caddy: RM {course.pricing.caddyFee}</span>
+                  <span>Senior: -RM {course.pricing.seniorDiscount}</span>
                 </div>
               </div>
-              <p className="text-xl text-lime font-medium mt-6 leading-relaxed">
+            </div>
+
+            {/* Promotion */}
+            <div className="bg-lime/10 rounded-2xl p-2.5 border border-lime/20">
+              <div className="flex justify-between items-center mb-0.5">
+                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Promotion</h3>
+                <Star size={10} className="text-lime" fill="currentColor" />
+              </div>
+              <p className="text-[13px] text-white font-bold leading-tight">
                 {course.promotion || '현재 진행중인 프로모션이 없습니다.'}
               </p>
             </div>
@@ -341,7 +391,7 @@ const Home = () => {
         >
           <h1 className="text-4xl md:text-6xl font-sans font-bold leading-[1.2] mb-8 tracking-tighter">
             당신이 꿈꾸던 골프 파라다이스, <br />
-            <span className="text-lime">조호바루.</span>
+            <span className="text-lime">조호바루 프리미엄 골프 컬렉션.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
             필드 위 짜릿한 샷과 도심 속 화려한 야경을 동시에 누리는 골프 휴가.
@@ -397,66 +447,81 @@ const Golf = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             key={course.id} 
-            className="group"
+            className="group flex flex-col h-full"
           >
-            <a 
-              href={course.websiteUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
-            >
-              <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-              <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
-                {course.category}
-              </div>
-            </a>
-            <h3 className="text-2xl serif mb-4">{course.name}</h3>
-            
-            <div className="space-y-3 text-sm opacity-70 mb-6">
-              <div className="flex items-center gap-2">
-                <Clock size={14} />
-                <span>숙소(KSL)에서 {course.travelTime}분 소요</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Info size={14} />
-                <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
-              </div>
-              {course.promotion && (
-                <div className="flex items-center gap-2 text-lime font-medium">
-                  <Star size={14} fill="currentColor" />
-                  <span>Promotion: {course.promotion}</span>
+            <div className="flex-grow">
+              <a 
+                href={course.websiteUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
+              >
+                <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
+                  {course.category}
                 </div>
-              )}
+              </a>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl serif">{course.name}</h3>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + (course.address || 'Johor Bahru'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
+                  title="Google Maps"
+                >
+                  <MapIcon size={18} />
+                </a>
+              </div>
+              
+              <div className="space-y-3 text-sm opacity-70 mb-6">
+                <div className="flex items-center gap-2">
+                  <Clock size={14} />
+                  <span>숙소(KSL)에서 {course.travelTime}분 소요</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Info size={14} />
+                  <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
+                </div>
+                {course.promotion && (
+                  <div className="flex items-center gap-2 text-lime font-medium">
+                    <Star size={14} fill="currentColor" />
+                    <span>Promotion: {course.promotion}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Detailed Pricing Table */}
-            <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
-              <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
-                <span>Type</span>
-                <span>Morning</span>
-                <span>Afternoon</span>
+            {/* Detailed Pricing Table - Aligned to bottom */}
+            <div className="mt-auto">
+              <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
+                <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
+                  <span>Type</span>
+                  <span>Morning</span>
+                  <span>Afternoon</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-1">
+                  <span className="font-medium">Weekday</span>
+                  <span>RM {course.pricing.weekday.morning}</span>
+                  <span>RM {course.pricing.weekday.afternoon}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-medium">Weekend</span>
+                  <span>RM {course.pricing.weekend.morning}</span>
+                  <span>RM {course.pricing.weekend.afternoon}</span>
+                </div>
+                <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
+                  <span>Caddy Fee: RM {course.pricing.caddyFee}</span>
+                  <span>Senior: -RM {course.pricing.seniorDiscount}</span>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 mb-1">
-                <span className="font-medium">Weekday</span>
-                <span>RM {course.pricing.weekday.morning}</span>
-                <span>RM {course.pricing.weekday.afternoon}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <span className="font-medium">Weekend</span>
-                <span>RM {course.pricing.weekend.morning}</span>
-                <span>RM {course.pricing.weekend.afternoon}</span>
-              </div>
-              <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
-                <span>Caddy Fee: RM {course.pricing.caddyFee}</span>
-                <span>Senior: -RM {course.pricing.seniorDiscount}</span>
-              </div>
-            </div>
 
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
-                  <p className="text-xl serif">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
+                    <p className="text-xl serif">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -488,7 +553,18 @@ const FoodCard = ({ item }: { item: FoodItem }) => (
     </div>
     <div className="p-8 flex-1 flex flex-col">
       <div className="mb-6">
-        <h3 className="text-2xl serif mb-2">{item.name}</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-2xl serif">{item.name}</h3>
+          <a 
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ' ' + (item.quickInfo.find(info => info.label === '위치' || info.label === '주소')?.value || 'Johor Bahru'))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
+            title="Google Maps"
+          >
+            <MapIcon size={18} />
+          </a>
+        </div>
         {item.tagline && <p className="text-sm italic text-lime opacity-80 mb-4">{item.tagline}</p>}
         <p className="text-sm opacity-70 leading-relaxed">{item.description}</p>
       </div>
@@ -535,7 +611,7 @@ const FoodCard = ({ item }: { item: FoodItem }) => (
 
 const Stay = () => {
   const [activeStayCat, setActiveStayCat] = useState('4');
-  const [activeCategory, setActiveCategory] = useState<'All' | 'Seremban' | 'KSL' | 'Nearby' | 'Market'>('All');
+  const [activeCategory, setActiveCategory] = useState<'All' | 'LocalTop10' | 'KSL' | 'Nearby' | 'Market'>('All');
   
   const filteredFood = FOOD_DATA.filter(item => 
     activeCategory === 'All' ? true : item.category === activeCategory
@@ -547,7 +623,18 @@ const Stay = () => {
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       {/* Stay Section */}
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">KSL Residence <span className="italic text-lime">R9</span></h1>
+        <div className="flex items-center gap-6 mb-8">
+          <h1 className="text-7xl serif">Stay <span className="italic text-lime"></span></h1>
+          <a 
+            href="https://www.google.com/maps/search/?api=1&query=KSL+City+Mall+Johor+Bahru"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-12 h-12 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform mt-2"
+            title="Google Maps"
+          >
+            <MapIcon size={24} />
+          </a>
+        </div>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
           "KSL 몰과 연결되어 라운딩 후 쇼핑·마사지·식사가 한 번에 가능! Residence R9 홈스테이 추천 리스트"
         </p>
@@ -589,11 +676,11 @@ const Stay = () => {
       <header className="mb-12 pt-12 border-t border-white/10">
         <h1 className="text-7xl serif mb-8">Food</h1>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
-          "조호바루와 세렘반의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
+          "조호바루의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
         </p>
         
         <div className="flex flex-wrap gap-4 mb-12">
-          {['All', 'Nearby', 'Market', 'Seremban', 'KSL'].map((cat) => (
+          {['All', 'Nearby', 'Market', 'LocalTop10', 'KSL'].map((cat) => (
             <button 
               key={cat}
               onClick={() => setActiveCategory(cat as any)}
@@ -605,7 +692,7 @@ const Stay = () => {
               {cat === 'All' ? '전체보기' : 
                cat === 'Nearby' ? '주변 맛집' : 
                cat === 'Market' ? '야시장' : 
-               cat === 'Seremban' ? '세렘반 TOP 10' : 'KSL 시티몰 TOP 10'}
+               cat === 'LocalTop10' ? '현지인 맛집10' : 'KSL 시티몰 TOP 10'}
             </button>
           ))}
         </div>
@@ -613,8 +700,7 @@ const Stay = () => {
         <div className="p-8 glass rounded-[32px] border border-white/10">
           <h4 className="text-xl serif mb-2">현지 미식 가이드</h4>
           <p className="text-sm opacity-60 max-w-3xl">
-            말레이시아 골프 여행의 완성은 맛있는 음식입니다. 조호바루 시내의 활기찬 야시장부터 세렘반의 전통 있는 노포까지, 
-            현지인들이 줄 서서 먹는 진짜 맛집들을 엄선했습니다. 각 매장의 대표 메뉴와 방문 팁을 확인해보세요.
+            말레이시아 골프 여행의 완성은 맛있는 음식입니다. 조호바루 시내의 활기찬 야시장부터 현지인들이 줄 서서 먹는 진짜 맛집들을 엄선했습니다. 각 매장의 대표 메뉴와 방문 팁을 확인해보세요.
           </p>
         </div>
       </header>
