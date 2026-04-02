@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -6,11 +6,16 @@ import {
   Star, Clock, Info, 
   Calculator, Map as MapIcon,
   Plane, Car, Mail, Play,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight,
+  CheckCircle2, AlertCircle, Send,
+  Plus, Trash2
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { format } from 'date-fns';
+import { format, isWeekend, isSameDay, startOfTomorrow } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
+import emailjs from '@emailjs/browser';
 
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
@@ -794,7 +799,89 @@ const Pricing = () => {
 
 const Booking = () => {
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [options, setOptions] = useState<Record<string, { day: 'weekday' | 'weekend', time: 'morning' | 'afternoon' }>>({});
+  const [options, setOptions] = useState<Record<string, Array<{ 
+    scheduleId: string,
+    day: 'weekday' | 'weekend', 
+    time: 'morning' | 'afternoon',
+    dates: Date[]
+  }>>>({});
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [openCalendarKey, setOpenCalendarKey] = useState<string | null>(null);
+
+  const handleOpenQuoteModal = () => {
+    // Check if all selected courses have at least one date selected in each of their schedules
+    const allDatesSelected = selectedCourses.every(id => {
+      const schedules = options[id] || [];
+      return schedules.length > 0 && schedules.every(s => s.dates && s.dates.length > 0);
+    });
+
+    if (!allDatesSelected) {
+      alert('날짜를 확인해주세요');
+      return;
+    }
+
+    setIsQuoteModalOpen(true);
+  };
+
+  const isAllDatesSelected = selectedCourses.length > 0 && selectedCourses.every(id => {
+    const schedules = options[id] || [];
+    return schedules.length > 0 && schedules.every(s => s.dates && s.dates.length > 0);
+  });
+
+  const [quoteForm, setQuoteForm] = useState({
+    from_name: '',
+    email: '',
+    phone: '',
+    golf_courses: '',
+    travel_period: '',
+    message: ''
+  });
+
+  const golfCoursesRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-scroll golf_courses textarea when content changes
+  useEffect(() => {
+    if (golfCoursesRef.current) {
+      golfCoursesRef.current.scrollTop = golfCoursesRef.current.scrollHeight;
+    }
+  }, [quoteForm.golf_courses]);
+
+  // Sync selected courses to quote form when modal opens or selection changes
+  useEffect(() => {
+    if (isQuoteModalOpen) {
+      const coursesInfo = selectedCourses.map(id => {
+        const course = GOLF_COURSES.find(c => c.id === id);
+        const schedules = options[id] || [];
+        if (!course || schedules.length === 0) return '';
+        
+        const scheduleDetails = schedules.map(opt => {
+          const dateStr = opt.dates?.length > 0 
+            ? opt.dates.map(d => format(d, 'MM/dd')).join(', ')
+            : '날짜 미선택';
+          return `${dateStr} / ${opt.time.toUpperCase()}`;
+        }).join('\n');
+
+        return `${course.name}\n${scheduleDetails}`;
+      }).filter(Boolean).join('\n\n');
+      
+      // Calculate overall travel period from all selected dates
+      const allDates = selectedCourses.flatMap(id => (options[id] || []).flatMap(s => s.dates || []));
+      let period = '';
+      if (allDates.length > 0) {
+        const sorted = [...allDates].sort((a, b) => a.getTime() - b.getTime());
+        const start = format(sorted[0], 'yyyy.MM.dd');
+        const end = format(sorted[sorted.length - 1], 'yyyy.MM.dd');
+        period = `${start} ~ ${end}`;
+      }
+
+      setQuoteForm(prev => ({ 
+        ...prev, 
+        golf_courses: coursesInfo,
+        travel_period: period
+      }));
+    }
+  }, [isQuoteModalOpen, selectedCourses, options]);
 
   const toggleCourse = (id: string) => {
     if (selectedCourses.includes(id)) {
@@ -804,29 +891,178 @@ const Booking = () => {
       setOptions(newOptions);
     } else if (selectedCourses.length < 10) {
       setSelectedCourses([...selectedCourses, id]);
-      setOptions({ ...options, [id]: { day: 'weekday', time: 'morning' } });
+      const today = new Date();
+      const initialDay = isWeekend(today) ? 'weekend' : 'weekday';
+      setOptions({ 
+        ...options, 
+        [id]: [{ 
+          scheduleId: Math.random().toString(36).substr(2, 9),
+          day: initialDay, 
+          time: 'morning',
+          dates: []
+        }]
+      });
     }
   };
 
-  const updateOption = (id: string, key: 'day' | 'time', value: string) => {
+  const addSchedule = (courseId: string) => {
+    const today = new Date();
+    const initialDay = isWeekend(today) ? 'weekend' : 'weekday';
     setOptions({
       ...options,
-      [id]: { ...options[id], [key]: value }
+      [courseId]: [
+        ...options[courseId],
+        {
+          scheduleId: Math.random().toString(36).substr(2, 9),
+          day: initialDay,
+          time: 'morning',
+          dates: []
+        }
+      ]
     });
+  };
+
+  const removeSchedule = (courseId: string, scheduleId: string) => {
+    if (options[courseId].length <= 1) return;
+    setOptions({
+      ...options,
+      [courseId]: options[courseId].filter(s => s.scheduleId !== scheduleId)
+    });
+  };
+
+  const updateOption = (courseId: string, scheduleId: string, key: 'day' | 'time' | 'dates', value: any) => {
+    const courseSchedules = [...options[courseId]];
+    const scheduleIndex = courseSchedules.findIndex(s => s.scheduleId === scheduleId);
+    if (scheduleIndex === -1) return;
+
+    let current = { ...courseSchedules[scheduleIndex], [key]: value };
+
+    // Conflict detection
+    if (key === 'dates' || key === 'time') {
+      const targetDates = key === 'dates' ? (value as Date[]) : current.dates;
+      const targetTime = key === 'time' ? (value as string) : current.time;
+
+      if (targetDates && targetDates.length > 0) {
+        // Check against ALL other schedules in ALL courses
+        for (const cId of selectedCourses) {
+          const schedules = options[cId] || [];
+          for (const s of schedules) {
+            // Skip the current schedule being updated
+            if (cId === courseId && s.scheduleId === scheduleId) continue;
+
+            if (s.time === targetTime) {
+              const conflictingDates = targetDates.filter(d1 => 
+                s.dates.some(d2 => isSameDay(d1, d2))
+              );
+
+              if (conflictingDates.length > 0) {
+                alert('이미 선택된 날짜입니다. 다른 날짜를 선택해 주세요.');
+                return; // Stop update if conflict found
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (key === 'dates') {
+      const dates = value as Date[];
+      if (dates.length > 0) {
+        // If any date is a weekday, set to weekday. Otherwise weekend.
+        const hasWeekday = dates.some(d => !isWeekend(d));
+        current.day = hasWeekday ? 'weekday' : 'weekend';
+      }
+    }
+
+    courseSchedules[scheduleIndex] = current;
+    setOptions({ ...options, [courseId]: courseSchedules });
   };
 
   const calculateTotal = () => {
     return selectedCourses.reduce((acc, id) => {
       const course = GOLF_COURSES.find(c => c.id === id);
       if (!course) return acc;
-      const opt = options[id];
-      const price = course.pricing[opt.day][opt.time];
-      return acc + price;
+      const schedules = options[id] || [];
+      return acc + schedules.reduce((sAcc, opt) => {
+        const price = course.pricing[opt.day][opt.time];
+        const count = opt.dates?.length || 0;
+        return sAcc + (price * count);
+      }, 0);
     }, 0);
   };
 
   const totalMYR = calculateTotal();
 
+  const sendEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (selectedCourses.length === 0) {
+      alert('선택된 골프장이 없습니다.');
+      return;
+    }
+
+    if (!quoteForm.email && !quoteForm.phone) {
+      alert('이메일 주소 또는 연락처 중 하나는 반드시 입력해주세요.');
+      return;
+    }
+
+    setIsSending(true);
+
+    const summary = selectedCourses.map(id => {
+      const course = GOLF_COURSES.find(c => c.id === id);
+      const schedules = options[id] || [];
+      return schedules.map(opt => {
+        const price = course?.pricing[opt.day][opt.time] || 0;
+        const dateStr = opt.dates?.length > 0 ? opt.dates.map(d => format(d, 'MM/dd')).join(', ') : '날짜 미선택';
+        return `${course?.name} (${dateStr} / ${opt.time}): RM ${price}`;
+      }).join('\n');
+    }).join('\n\n');
+
+    // 💡 모든 값을 문자열로 변환하여 전송하는 것이 안전합니다.
+    const templateParams = {
+      from_name: String(quoteForm.from_name),
+      name: String(quoteForm.from_name), // Added to match {{name}} in EmailJS template
+      email: String(quoteForm.email),
+      phone: String(quoteForm.phone),
+      contact: `${quoteForm.email} / ${quoteForm.phone}`,
+      golf_courses: String(quoteForm.golf_courses),
+      schedule: String(quoteForm.travel_period),
+      message: String(quoteForm.message),
+      total_myr: String(totalMYR),
+      total_krw: (totalMYR * EXCHANGE_RATE).toLocaleString() + '원',
+      summary: String(summary)
+    };
+
+    const serviceId = "service_jb_golf";
+    const templateId = "template_jb_golf_reserve";
+    const publicKey = "FBsRuyiHJUVlj-ptY";
+
+    console.log("EmailJS 전송 시도:", { serviceId, templateId, templateParams });
+
+    // 초기화 및 전송
+    emailjs.send(serviceId, templateId, templateParams, {
+      publicKey: publicKey,
+    })
+      .then((response) => {
+        console.log('EmailJS 성공:', response.status, response.text);
+        alert('견적 문의가 성공적으로 전송되었습니다!');
+        setIsQuoteModalOpen(false);
+        setQuoteForm({ from_name: '', email: '', phone: '', golf_courses: '', travel_period: '', message: '' });
+      })
+      .catch((error) => {
+        console.error('EmailJS 상세 에러:', error);
+        // 에러 객체의 내용을 더 자세히 출력
+        if (error.text) {
+          alert(`전송 실패: ${error.text}`);
+        } else {
+          alert('전송 실패. EmailJS 설정을 확인해주세요.');
+        }
+      })
+      .finally(() => {
+        setIsSending(false);
+      });
+  };
+ 
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
@@ -880,29 +1116,113 @@ const Booking = () => {
           {selectedCourses.length > 0 && (
             <section className="animate-in fade-in slide-in-from-bottom-4">
               <h2 className="text-2xl serif mb-6">2. Configure Schedule</h2>
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {selectedCourses.map(id => {
                   const course = GOLF_COURSES.find(c => c.id === id);
+                  const schedules = options[id] || [];
                   return (
-                    <div key={id} className="p-6 glass border border-white/10 rounded-[32px] flex flex-wrap gap-8 items-center justify-between">
-                      <p className="serif text-lg">{course?.name}</p>
-                      <div className="flex gap-4">
-                        <select 
-                          value={options[id]?.day} 
-                          onChange={(e) => updateOption(id, 'day', e.target.value)}
-                          className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
+                    <div 
+                      key={id} 
+                      className={cn(
+                        "p-8 glass border border-white/10 rounded-[40px] space-y-6 transition-all",
+                        schedules.some(s => openCalendarKey === `${id}-${s.scheduleId}`) ? "relative z-30" : "relative z-0"
+                      )}
+                    >
+                      <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                        <p className="serif text-xl text-lime">{course?.name}</p>
+                        <button 
+                          onClick={() => addSchedule(id)}
+                          className="flex items-center gap-2 text-[10px] tracking-widest uppercase bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors"
                         >
-                          <option value="weekday" className="bg-forest">Weekday</option>
-                          <option value="weekend" className="bg-forest">Weekend</option>
-                        </select>
-                        <select 
-                          value={options[id]?.time} 
-                          onChange={(e) => updateOption(id, 'time', e.target.value)}
-                          className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
-                        >
-                          <option value="morning" className="bg-forest">Morning</option>
-                          <option value="afternoon" className="bg-forest">Afternoon</option>
-                        </select>
+                          <Plus size={12} /> 일정 추가
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {schedules.map((opt, idx) => {
+                          const calendarKey = `${id}-${opt.scheduleId}`;
+                          return (
+                            <div key={opt.scheduleId} className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                              <div className="flex flex-wrap items-center gap-4">
+                                <span className="text-[10px] opacity-40 font-mono">#{idx + 1}</span>
+                                {/* Date Picker Trigger */}
+                                <div className="relative">
+                                  <button 
+                                    onClick={() => setOpenCalendarKey(openCalendarKey === calendarKey ? null : calendarKey)}
+                                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-4 py-2 text-xs transition-colors"
+                                  >
+                                    <Calendar size={14} className="text-lime" />
+                                    <span>
+                                      {opt.dates?.length > 0 
+                                        ? `${format(opt.dates[0], 'MM/dd')}${opt.dates.length > 1 ? ` 외 ${opt.dates.length - 1}` : ''}`
+                                        : '날짜 선택'}
+                                    </span>
+                                  </button>
+
+                                  <AnimatePresence>
+                                    {openCalendarKey === calendarKey && (
+                                      <>
+                                        <div 
+                                          className="fixed inset-0 z-[100]" 
+                                          onClick={() => setOpenCalendarKey(null)}
+                                        />
+                                        <motion.div 
+                                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                          className="absolute top-full mt-2 left-0 z-[110] bg-forest border border-white/10 rounded-3xl p-4 shadow-2xl"
+                                        >
+                                          <style>{`
+                                            .rdp { --rdp-accent-color: #a3e635; --rdp-background-color: rgba(163, 230, 53, 0.1); margin: 0; }
+                                            .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover { background-color: var(--rdp-accent-color); color: #061a14; }
+                                            .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: var(--rdp-background-color); }
+                                            .rdp-day_today { font-weight: bold; color: #a3e635; }
+                                          `}</style>
+                                          <DayPicker
+                                            mode="single"
+                                            selected={opt.dates?.[0]}
+                                            onSelect={(date) => updateOption(id, opt.scheduleId, 'dates', date ? [date] : [])}
+                                            disabled={{ before: startOfTomorrow() }}
+                                            className="text-white"
+                                          />
+                                          <button 
+                                            onClick={() => setOpenCalendarKey(null)}
+                                            className="w-full mt-4 py-2 bg-lime text-forest text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-lime/90 transition-colors"
+                                          >
+                                            선택 완료
+                                          </button>
+                                        </motion.div>
+                                      </>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+
+                                <select 
+                                  value={opt.time} 
+                                  onChange={(e) => updateOption(id, opt.scheduleId, 'time', e.target.value)}
+                                  className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
+                                >
+                                  <option value="morning" className="bg-forest">Morning</option>
+                                  <option value="afternoon" className="bg-forest">Afternoon</option>
+                                </select>
+                              </div>
+
+                              <div className="flex items-center gap-4">
+                                <p className="text-[10px] opacity-40 uppercase tracking-widest">
+                                  {opt.day === 'weekday' ? '평일 요금' : '주말 요금'}
+                                </p>
+                                {schedules.length > 1 && (
+                                  <button 
+                                    onClick={() => removeSchedule(id, opt.scheduleId)}
+                                    className="text-white/20 hover:text-red-400 transition-colors p-2"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -914,37 +1234,41 @@ const Booking = () => {
 
         {/* Receipt Area */}
         <div className="relative">
-          <div className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 overflow-hidden max-h-[calc(100vh-12rem)] flex flex-col">
+          <div className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 flex flex-col">
             <div className="absolute top-0 left-0 w-full h-2 bg-lime shrink-0" />
             <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 shrink-0">
               <h2 className="text-3xl serif">Receipt Summary</h2>
               <span className="text-[10px] tracking-widest uppercase bg-lime text-forest px-3 py-1 rounded-full font-bold">캐디피/팁 제외</span>
             </div>
             
-            <div className="space-y-6 mb-8 overflow-y-auto pr-2 custom-scrollbar flex-grow">
+            <div className="space-y-6 mb-8 pr-2 custom-scrollbar">
               {selectedCourses.length === 0 ? (
                 <p className="text-sm opacity-40 italic">골프장을 선택하시면 상세 견적이 표시됩니다.</p>
               ) : (
                 selectedCourses.map(id => {
                   const course = GOLF_COURSES.find(c => c.id === id);
-                  const opt = options[id];
-                  if (!course || !opt) return null;
-                  const price = course.pricing[opt.day][opt.time];
+                  const schedules = options[id] || [];
+                  if (!course || schedules.length === 0) return null;
                   
-                  return (
-                    <div key={id} className="flex justify-between items-start gap-4">
-                      <div className="flex-grow">
-                        <p className="font-medium text-sm">{course.name}</p>
-                        <p className="text-[10px] opacity-40 uppercase tracking-widest">
-                          {opt.day} / {opt.time}
-                        </p>
+                  return schedules.map(opt => {
+                    const price = course.pricing[opt.day][opt.time];
+                    return (
+                      <div key={opt.scheduleId} className="flex justify-between items-start gap-4 mb-4 last:mb-0">
+                        <div className="flex-grow">
+                          <p className="font-medium text-sm">{course.name}</p>
+                          <p className="text-[10px] opacity-40 uppercase tracking-widest">
+                            {opt.dates?.length > 0 
+                              ? opt.dates.map(d => format(d, 'MM/dd')).join(', ')
+                              : opt.day} / {opt.time}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">RM {price * (opt.dates?.length || 1)}</p>
+                          <p className="text-[10px] opacity-40 italic">₩{(price * (opt.dates?.length || 1) * EXCHANGE_RATE).toLocaleString()}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">RM {price}</p>
-                        <p className="text-[10px] opacity-40 italic">₩{(price * EXCHANGE_RATE).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  );
+                    );
+                  });
                 })
               )}
             </div>
@@ -965,9 +1289,168 @@ const Booking = () => {
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
               <p>• 상세 예약 확정은 이메일(cskim1747@gmail.com) 문의를 통해 진행해 주세요.</p>
             </div>
+
+            <button
+              onClick={handleOpenQuoteModal}
+              disabled={!isAllDatesSelected}
+              className={cn(
+                "mt-6 w-full py-4 rounded-2xl font-bold tracking-widest uppercase text-xs transition-all flex items-center justify-center gap-2",
+                isAllDatesSelected
+                  ? "bg-lime text-forest hover:shadow-[0_0_30px_rgba(163,230,53,0.3)]"
+                  : "bg-white/10 text-white/20 cursor-not-allowed"
+              )}
+            >
+              <Send size={16} />
+              견적 문의하기
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Quote Request Modal */}
+      <AnimatePresence>
+        {isQuoteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setIsQuoteModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass max-w-lg w-full p-6 rounded-[32px] border border-white/10 relative max-h-[95vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setIsQuoteModalOpen(false)}
+                className="absolute top-5 right-6 text-white/40 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="mb-4">
+                <h2 className="text-xl serif mb-0.5">견적 상담 신청</h2>
+                <p className="text-[10px] opacity-40">상세 견적을 위해 정보를 입력해주세요.</p>
+              </div>
+
+              <form onSubmit={sendEmail} className="space-y-2.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">성명 *</label>
+                  <input 
+                    required
+                    type="text" 
+                    lang="ko"
+                    placeholder="성함을 입력해주세요"
+                    value={quoteForm.from_name}
+                    onChange={(e) => setQuoteForm({ ...quoteForm, from_name: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">이메일 주소</label>
+                    <input 
+                      type="email" 
+                      inputMode="email"
+                      placeholder="이메일 주소"
+                      value={quoteForm.email}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, email: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">연락처</label>
+                    <input 
+                      type="tel" 
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="연락처 (숫자만 입력)"
+                      value={quoteForm.phone}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">문의사항</label>
+                  <textarea 
+                    lang="ko"
+                    placeholder="추가 문의사항이 있으시면 입력해주세요"
+                    rows={2}
+                    value={quoteForm.message}
+                    onChange={(e) => setQuoteForm({ ...quoteForm, message: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">관심 골프장(일정) *</label>
+                  <textarea 
+                    ref={golfCoursesRef}
+                    required
+                    readOnly
+                    lang="ko"
+                    placeholder="선택하신 골프장 리스트입니다."
+                    rows={3}
+                    value={quoteForm.golf_courses}
+                    onChange={(e) => setQuoteForm({ ...quoteForm, golf_courses: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors resize-none overflow-y-auto cursor-default"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">희망 일정 *</label>
+                  <input 
+                    required
+                    readOnly
+                    type="text" 
+                    lang="ko"
+                    placeholder="예: 2025.05.01 ~ 2025.05.05"
+                    value={quoteForm.travel_period}
+                    onChange={(e) => setQuoteForm({ ...quoteForm, travel_period: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-lime transition-colors cursor-default"
+                  />
+                </div>
+
+                <div className="p-3 bg-lime/10 rounded-2xl border border-lime/20">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-[11px] tracking-widest uppercase opacity-60">선택 코스</span>
+                    <span className="text-xs font-bold text-lime">
+                      {selectedCourses.length} 코스({selectedCourses.reduce((acc, id) => acc + (options[id]?.length || 0), 0)}회)
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] tracking-widest uppercase opacity-60">총 예상 금액</span>
+                    <span className="text-base serif text-lime">₩{(totalMYR * EXCHANGE_RATE).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSending}
+                  className="w-full py-3.5 bg-lime text-forest rounded-xl font-bold tracking-widest uppercase text-[11px] hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-forest/30 border-t-forest rounded-full animate-spin" />
+                      전송 중...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      견적 신청하기
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
