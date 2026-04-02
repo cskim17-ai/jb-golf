@@ -5,7 +5,7 @@ import {
   Menu, X, Calendar, Users, MapPin, 
   Star, Clock, Info, 
   Calculator, Map as MapIcon,
-  Plane, Car, Mail,
+  Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
+import { GALLERY_DATA, type GalleryItem } from './galleryData';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,6 +32,7 @@ const Navbar = () => {
     { name: 'Stay/Food', path: '/stay' },
     { name: 'Pricing', path: '/pricing' },
     { name: 'Booking', path: '/booking' },
+    { name: 'Gallery', path: '/gallery' },
   ];
 
   return (
@@ -131,6 +133,7 @@ const Footer = () => (
           <Link to="/stay" className="hover:underline">Stay/Food</Link>
           <Link to="/pricing" className="hover:underline">Pricing</Link>
           <Link to="/booking" className="hover:underline">Booking</Link>
+          <Link to="/gallery" className="hover:underline">Gallery</Link>
         </div>
       </div>
     </div>
@@ -423,7 +426,7 @@ const Golf = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">Johor Bahru <span className="italic">Golf Courses</span></h1>
+        <h1 className="text-7xl serif mb-8">Golf <span className="italic">Courses</span></h1>
         <div className="flex flex-wrap gap-4">
           {['All', 'Premium', 'Value', 'Accessibility'].map((f) => (
             <button 
@@ -969,6 +972,287 @@ const Booking = () => {
   );
 };
 
+const Gallery = () => {
+  const [activeTab, setActiveTab] = useState<'video' | 'photo'>('video');
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  const initialVideo = GALLERY_DATA.find(i => i.type === 'video');
+  const [featuredVideo, setFeaturedVideo] = useState<GalleryItem | null>(initialVideo || null);
+
+  const filteredItems = GALLERY_DATA.filter(item => item.type === activeTab);
+
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const handleNext = () => {
+    if (!selectedItem) return;
+    const currentIndex = filteredItems.findIndex(i => i.id === selectedItem.id);
+    const nextIndex = (currentIndex + 1) % filteredItems.length;
+    setSelectedItem(filteredItems[nextIndex]);
+  };
+
+  const handlePrev = () => {
+    if (!selectedItem) return;
+    const currentIndex = filteredItems.findIndex(i => i.id === selectedItem.id);
+    const prevIndex = (currentIndex - 1 + filteredItems.length) % filteredItems.length;
+    setSelectedItem(filteredItems[prevIndex]);
+  };
+
+  return (
+    <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto">
+      <header className="mb-16 text-center">
+        <motion.span 
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          className="text-lime font-bold tracking-[0.3em] uppercase text-xs mb-4 block"
+        >
+          Visual Experience
+        </motion.span>
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          className="text-6xl md:text-8xl serif mb-8"
+        >
+          Gallery
+        </motion.h1>
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-xl serif italic opacity-60 max-w-2xl mx-auto"
+        >
+          "조호바루의 푸른 필드와 아늑한 휴식의 순간들. 야나골 골프클럽의 생생한 현장을 만나보세요."
+        </motion.p>
+        
+        <div className="flex justify-center gap-4 mt-12">
+          <button 
+            onClick={() => setActiveTab('video')}
+            className={cn(
+              "px-8 py-3 rounded-full border transition-all duration-500 text-sm font-medium tracking-wider",
+              activeTab === 'video' 
+                ? "bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.2)]" 
+                : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+            )}
+          >
+            유튜브 추천 동영상
+          </button>
+          <button 
+            onClick={() => setActiveTab('photo')}
+            className={cn(
+              "px-8 py-3 rounded-full border transition-all duration-500 text-sm font-medium tracking-wider",
+              activeTab === 'photo' 
+                ? "bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.2)]" 
+                : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+            )}
+          >
+            사진 보기
+          </button>
+        </div>
+      </header>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'video' ? (
+          <motion.div
+            key="video-section"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-12"
+          >
+            {/* Featured Video */}
+            {featuredVideo && (
+              <div className="glass rounded-[40px] overflow-hidden border border-white/10 shadow-2xl">
+                <div className="grid lg:grid-cols-3">
+                  <div className="lg:col-span-2 aspect-video bg-black">
+                    <iframe
+                      src={featuredVideo.url}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      title={featuredVideo.title}
+                    ></iframe>
+                  </div>
+                  <div className="p-8 md:p-12 flex flex-col justify-center bg-white/5">
+                    <span className="text-lime font-bold text-xs tracking-widest uppercase mb-4">Now Playing</span>
+                    <h2 className="text-3xl md:text-4xl serif mb-6 leading-tight">{featuredVideo.title}</h2>
+                    <p className="text-white/60 leading-relaxed mb-8">{featuredVideo.description}</p>
+                    <div className="flex items-center gap-4 text-xs tracking-widest uppercase opacity-40">
+                      <div className="w-12 h-[1px] bg-white" />
+                      <span>Featured Content</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {GALLERY_DATA.filter(i => i.type === 'video').map((item) => {
+                const ytId = getYouTubeId(item.url);
+                const isFeatured = featuredVideo?.id === item.id;
+                
+                return (
+                  <motion.div
+                    key={item.id}
+                    whileHover={{ y: -5 }}
+                    onClick={() => setFeaturedVideo(item)}
+                    className={cn(
+                      "cursor-pointer group relative rounded-3xl overflow-hidden border transition-all duration-500",
+                      isFeatured ? "border-lime shadow-[0_0_20px_rgba(163,230,53,0.2)]" : "border-white/10 hover:border-white/30"
+                    )}
+                  >
+                    <div className="aspect-video relative overflow-hidden">
+                      <img 
+                        src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500 flex items-center justify-center">
+                        <div className={cn(
+                          "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
+                          isFeatured ? "bg-lime text-black scale-110" : "bg-white/20 backdrop-blur-md text-white group-hover:bg-white group-hover:text-black"
+                        )}>
+                          <Play size={20} fill="currentColor" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-5 bg-white/5">
+                      <h3 className="text-sm font-medium line-clamp-1 opacity-80 group-hover:opacity-100 transition-opacity">{item.title}</h3>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="photo-section"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6"
+          >
+            {GALLERY_DATA.filter(i => i.type === 'photo').map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => setSelectedItem(item)}
+                className="relative group cursor-pointer rounded-2xl overflow-hidden break-inside-avoid shadow-xl"
+              >
+                <img 
+                  src={item.url} 
+                  alt={item.title} 
+                  className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-110"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    whileHover={{ y: 0, opacity: 1 }}
+                    className="space-y-2"
+                  >
+                    <h3 className="text-xl serif text-white">{item.title}</h3>
+                    <p className="text-xs text-white/60 tracking-wider uppercase">View Details</p>
+                  </motion.div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {selectedItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/98 flex items-center justify-center"
+          >
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <span className="text-xs font-bold text-lime">
+                    {GALLERY_DATA.filter(i => i.type === 'photo').findIndex(i => i.id === selectedItem.id) + 1}
+                  </span>
+                </div>
+                <span className="text-white/40 text-xs tracking-widest uppercase">
+                  / {GALLERY_DATA.filter(i => i.type === 'photo').length}
+                </span>
+              </div>
+              <button 
+                onClick={() => setSelectedItem(null)}
+                className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <button 
+              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+              className="absolute left-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-all hover:scale-110 z-10 hidden md:flex"
+            >
+              <ChevronLeft size={32} />
+            </button>
+
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleNext(); }}
+              className="absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-all hover:scale-110 z-10 hidden md:flex"
+            >
+              <ChevronRight size={32} />
+            </button>
+
+            <motion.div
+              key={selectedItem.id}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative max-w-6xl w-full h-full flex flex-col items-center justify-center p-4 md:p-24"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative w-full h-full flex flex-col items-center justify-center gap-8">
+                <div className="relative w-full flex-grow flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={selectedItem.url} 
+                    alt={selectedItem.title} 
+                    className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="text-center max-w-2xl">
+                  <motion.h2 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="text-4xl md:text-5xl serif text-white mb-4"
+                  >
+                    {selectedItem.title}
+                  </motion.h2>
+                  <motion.p 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-white/60 text-lg leading-relaxed"
+                  >
+                    {selectedItem.description}
+                  </motion.p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Mobile Swipe/Tap hints or navigation could be added here */}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
@@ -983,6 +1267,7 @@ export default function App() {
             <Route path="/stay" element={<Stay />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/booking" element={<Booking />} />
+            <Route path="/gallery" element={<Gallery />} />
           </Routes>
         </main>
         <Footer />
