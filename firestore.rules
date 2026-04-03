@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "cskim1747@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidPricing(data) {
+      return data.id is string &&
+             data.courseName is string &&
+             data.rows is list;
+    }
+
+    function isValidQuote(data) {
+      return data.id is string &&
+             data.timestamp is string &&
+             data.from_name is string &&
+             data.email is string &&
+             data.total_myr is string &&
+             data.total_krw is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    // Pricing collection
+    match /pricing/{courseId} {
+      // Publicly readable for booking and course info
+      allow read: if true;
+      // Only admin can manage pricing
+      allow write: if isAdmin() && isValidPricing(request.resource.data);
+    }
+
+    // Quotes collection
+    match /quotes/{quoteId} {
+      // Only admin can see all quotes
+      allow read: if isAdmin();
+      // Anyone can submit a quote request
+      allow create: if isValidQuote(request.resource.data);
+      // Only admin can update or delete quotes
+      allow update, delete: if isAdmin();
+    }
+
+    // Users collection (for roles)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}

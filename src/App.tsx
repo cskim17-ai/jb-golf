@@ -16,11 +16,26 @@ import { format, isWeekend, isSameDay, startOfTomorrow } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import emailjs from '@emailjs/browser';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  serverTimestamp,
+  getDocFromServer
+} from 'firebase/firestore';
+import { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { db, auth } from './firebase';
 
 import html2canvas from 'html2canvas';
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
+import localPricing from './data/pricing.json';
+import localQuotes from './data/quotes.json';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -429,16 +444,13 @@ const Golf = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/pricing')
-      .then(res => res.json())
-      .then(data => {
-        setPricingData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      setPricingData(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribePricing();
   }, []);
 
   const filteredCourses = filter === 'All' 
@@ -788,16 +800,13 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/pricing')
-      .then(res => res.json())
-      .then(data => {
-        setPricingData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      setPricingData(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribePricing();
   }, []);
 
   if (loading) return (
@@ -893,16 +902,13 @@ const Booking = () => {
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/pricing')
-      .then(res => res.json())
-      .then(data => {
-        setPricingData(data);
-        setPricingLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setPricingLoading(false);
-      });
+    const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      setPricingData(data);
+      setPricingLoading(false);
+    });
+
+    return () => unsubscribePricing();
   }, []);
 
   const handleOpenQuoteModal = () => {
@@ -1171,35 +1177,35 @@ const Booking = () => {
 
     console.log("EmailJS 전송 시도:", { serviceId, templateId, templateParams });
 
-    // 백엔드에 견적 내역 저장
-    fetch('/api/quotes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(templateParams)
-    }).catch(err => console.error('견적 저장 실패:', err));
+    setIsSending(true);
 
-    // 초기화 및 전송
-    emailjs.send(serviceId, templateId, templateParams, {
-      publicKey: publicKey,
-    })
-      .then((response) => {
-        console.log('EmailJS 성공:', response.status, response.text);
-        alert('견적 문의가 성공적으로 전송되었습니다!');
-        setIsQuoteModalOpen(false);
-        setQuoteForm({ from_name: '', email: '', phone: '', golf_courses: '', travel_period: '', message: '' });
-      })
-      .catch((error) => {
-        console.error('EmailJS 상세 에러:', error);
-        // 에러 객체의 내용을 더 자세히 출력
-        if (error.text) {
-          alert(`전송 실패: ${error.text}`);
-        } else {
-          alert('전송 실패. EmailJS 설정을 확인해주세요.');
-        }
-      })
-      .finally(() => {
-        setIsSending(false);
+    try {
+      // Send email via EmailJS
+      const response = await emailjs.send(serviceId, templateId, templateParams, {
+        publicKey: publicKey,
       });
+      console.log('EmailJS 성공:', response.status, response.text);
+
+      // Save quote to Firestore
+      await addDoc(collection(db, 'quotes'), {
+        ...templateParams,
+        timestamp: new Date().toISOString(),
+        serverTimestamp: serverTimestamp()
+      });
+
+      alert('견적 문의가 성공적으로 전송되었습니다!');
+      setIsQuoteModalOpen(false);
+      setQuoteForm({ from_name: '', email: '', phone: '', golf_courses: '', travel_period: '', message: '' });
+    } catch (error: any) {
+      console.error('전송 실패:', error);
+      if (error.text) {
+        alert(`전송 실패: ${error.text}`);
+      } else {
+        alert('전송 실패. 설정을 확인해주세요.');
+      }
+    } finally {
+      setIsSending(false);
+    }
   };
  
   return (
@@ -1656,6 +1662,36 @@ const Admin = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [password, setPassword] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser?.email === 'cskim1747@gmail.com') {
+        setIsAuthorized(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Google Login Error:', error);
+      showAlert('로그인에 실패했습니다.');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsAuthorized(false);
+    } catch (error) {
+      console.error('Logout Error:', error);
+    }
+  };
   
   // Filters for quotes
   const [filterName, setFilterName] = useState('');
@@ -1668,6 +1704,38 @@ const Admin = () => {
     message: string;
     onConfirm?: () => void;
   }>({ type: null, message: '' });
+
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const handleMigration = async () => {
+    showConfirm('로컬 데이터를 Firebase로 마이그레이션하시겠습니까? 기존 데이터가 덮어씌워질 수 있습니다.', async () => {
+      setIsMigrating(true);
+      closeModal();
+      try {
+        // Migrate Pricing
+        const pricingPromises = (localPricing as CoursePricing[]).map(course => {
+          return setDoc(doc(db, 'pricing', course.id), course);
+        });
+
+        // Migrate Quotes
+        const quotesPromises = (localQuotes as any[]).map(quote => {
+          const quoteId = quote.id || Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          return setDoc(doc(db, 'quotes', quoteId), {
+            ...quote,
+            serverTimestamp: serverTimestamp()
+          });
+        });
+
+        await Promise.all([...pricingPromises, ...quotesPromises]);
+        showAlert('데이터 마이그레이션이 완료되었습니다.');
+      } catch (error) {
+        console.error('Migration error:', error);
+        showAlert('마이그레이션 중 오류가 발생했습니다.');
+      } finally {
+        setIsMigrating(false);
+      }
+    });
+  };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1703,26 +1771,36 @@ const Admin = () => {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    Promise.all([
-      fetch('/api/pricing').then(res => res.json()),
-      fetch('/api/quotes').then(res => res.json())
-    ])
-      .then(([pricing, quotes]) => {
-        setPricingData(pricing);
-        setQuotesData(quotes);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    
+    const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      setPricingData(data);
+    });
+
+    const q = query(collection(db, 'quotes'), orderBy('timestamp', 'desc'));
+    const unsubscribeQuotes = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as QuoteRequest);
+      setQuotesData(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("Quotes fetch error:", error);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribePricing();
+      unsubscribeQuotes();
+    };
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const cleanup = fetchData();
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+    };
   }, [fetchData]);
 
-  const handleSave = (dataToSave = pricingData) => {
+  const handleSave = async (dataToSave = pricingData) => {
     // Validation
     const isValid = dataToSave.every(course => {
       if (!course.courseName.trim()) return false;
@@ -1754,26 +1832,28 @@ const Admin = () => {
     }));
 
     setIsSaving(true);
-    fetch('/api/pricing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanedData),
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showAlert('저장되었습니다.');
-      } else {
-        showAlert('저장에 실패했습니다.');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      showAlert('저장 중 오류가 발생했습니다.');
-    })
-    .finally(() => {
+    try {
+      // Save each course pricing to Firestore
+      const savePromises = dataToSave.map(course => {
+        const cleanedCourse = {
+          ...course,
+          rows: course.rows.map(row => ({
+            ...row,
+            morning: Number(row.morning),
+            afternoon: Number(row.afternoon)
+          }))
+        };
+        return setDoc(doc(db, 'pricing', course.id), cleanedCourse);
+      });
+
+      await Promise.all(savePromises);
+      showAlert('저장되었습니다');
+    } catch (error) {
+      console.error("Save error:", error);
+      showAlert('저장에 실패했습니다');
+    } finally {
       setIsSaving(false);
-    });
+    }
   };
 
   const addCourse = () => {
@@ -1890,26 +1970,50 @@ const Admin = () => {
 
   if (!isAuthorized) {
     return (
-      <div className="pt-40 pb-24 px-6 max-w-md mx-auto">
-        <div className="glass p-8 rounded-[40px] border border-white/10 text-center">
-          <h1 className="text-3xl serif mb-6">Admin Access</h1>
-          <p className="opacity-60 mb-8 text-sm">관리자 비밀번호를 입력해 주세요.</p>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <input 
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 w-full focus:border-lime outline-none transition-all text-center text-xl tracking-widest"
-              placeholder="•••••••"
-              autoFocus
-            />
+      <div className="pt-40 pb-24 px-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
+          <h1 className="text-4xl serif mb-8">관리자 로그인</h1>
+          
+          <div className="space-y-6">
             <button 
-              type="submit"
-              className="bg-lime text-forest w-full py-3 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
+              onClick={handleGoogleLogin}
+              className="w-full py-4 bg-white text-forest rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-white/90 transition-all"
             >
-              확인
+              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+              Google 계정으로 로그인
             </button>
-          </form>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-forest px-2 text-white/40">또는 비밀번호 입력</span>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 w-full focus:border-lime outline-none transition-all text-center text-xl tracking-widest"
+                placeholder="•••••••"
+                autoFocus
+              />
+              <button 
+                type="submit"
+                className="bg-lime text-forest w-full py-3 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
+              >
+                확인
+              </button>
+            </form>
+          </div>
+          
+          <p className="mt-8 text-xs opacity-40 leading-relaxed">
+            관리자 계정(cskim1747@gmail.com)으로 로그인하거나<br />
+            지정된 비밀번호를 입력해 주세요.
+          </p>
         </div>
         {modal.type && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
@@ -1952,10 +2056,24 @@ const Admin = () => {
             >
               견적 요청 내역
             </button>
+            <button 
+              onClick={handleMigration}
+              disabled={isMigrating}
+              className="text-sm serif transition-all opacity-40 hover:opacity-100 flex items-center gap-2"
+            >
+              {isMigrating ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+              데이터 마이그레이션
+            </button>
           </div>
         </div>
         {activeTab === 'pricing' && (
           <div className="flex gap-4">
+            <button 
+              onClick={handleLogout}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all text-xs opacity-60"
+            >
+              로그아웃
+            </button>
             <button 
               onClick={addCourse} 
               className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all"
@@ -2704,6 +2822,19 @@ const Gallery = () => {
 // --- Main App ---
 
 export default function App() {
+  useEffect(() => {
+    // Test connection and sign in anonymously for security rules
+    const testConnection = async () => {
+      try {
+        await signInAnonymously(auth);
+        // We don't necessarily need to get a doc, just signing in is enough for rules
+      } catch (error) {
+        console.error("Firebase Auth error:", error);
+      }
+    };
+    testConnection();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col">

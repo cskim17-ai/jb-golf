@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "CoursePricing": {
+      "title": "Course Pricing",
+      "description": "Pricing information for each golf course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseName": { "type": "string" },
+        "remarks": { "type": "string" },
+        "adminMemo": { "type": "string" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string" },
+              "division": { "type": "string" },
+              "morning": { "type": "string" },
+              "afternoon": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "courseName", "rows"]
+    },
+    "QuoteRequest": {
+      "title": "Quote Request",
+      "description": "A request for a golf quote from a customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "from_name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "golf_courses": { "type": "string" },
+        "travel_period": { "type": "string" },
+        "total_myr": { "type": "string" },
+        "total_krw": { "type": "string" },
+        "summary": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "from_name", "email", "total_myr", "total_krw"]
+    }
+  },
+  "firestore": {
+    "/pricing/{courseId}": {
+      "schema": "CoursePricing",
+      "description": "Collection of golf course pricing data"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "QuoteRequest",
+      "description": "Collection of customer quote requests"
+    }
+  }
+}
