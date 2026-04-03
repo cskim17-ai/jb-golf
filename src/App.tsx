@@ -27,7 +27,7 @@ import {
   serverTimestamp,
   getDocFromServer
 } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { db, auth } from './firebase';
 
 import html2canvas from 'html2canvas';
@@ -36,6 +36,43 @@ import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
 import localPricing from './data/pricing.json';
 import localQuotes from './data/quotes.json';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+  }
+}
+
+function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email || undefined,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  return `오류: ${errInfo.error} (작업: ${operationType})`;
+}
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -446,33 +483,51 @@ const Golf = () => {
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      // Sort by order field
+      data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("Pricing fetch error (Golf):", error);
       setLoading(false);
     });
 
     return () => unsubscribePricing();
   }, []);
 
+  const sortedCourses = [...GOLF_COURSES].sort((a, b) => {
+    const aPricing = pricingData.find(p => p.courseName === a.name);
+    const bPricing = pricingData.find(p => p.courseName === b.name);
+    return (aPricing?.order ?? 999) - (bPricing?.order ?? 999);
+  });
+
   const filteredCourses = filter === 'All' 
-    ? GOLF_COURSES 
-    : GOLF_COURSES.filter(c => c.category === filter);
+    ? sortedCourses 
+    : sortedCourses.filter(c => c.category === filter);
 
   const extractPromotion = (remarks: string) => {
     if (!remarks) return null;
-    const lines = remarks.split('\n');
-    const promoLine = lines.find(line => line.includes('프로모션'));
+    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
+    // Look for lines containing '프로모션' or '플레이 가능' or starting with '★'
+    const promoLine = lines.find(line => 
+      line.includes('프로모션') || 
+      line.includes('플레이 가능') || 
+      line.startsWith('★') ||
+      line.startsWith('-')
+    );
     if (promoLine) {
-      return promoLine.replace(/^- /, '').trim();
+      return promoLine.replace(/^[★\-\s]+/, '').trim();
     }
     return null;
   };
 
   const extractCaddyFee = (remarks: string) => {
     if (!remarks) return null;
-    const lines = remarks.split('\n');
-    const caddyLine = lines.find(line => line.includes('캐디피'));
+    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
+    // Look for lines containing '캐디'
+    const caddyLine = lines.find(line => line.includes('캐디'));
     if (caddyLine) {
-      return caddyLine.replace(/^- /, '').trim();
+      return caddyLine.replace(/^[★\-\s]+/, '').trim();
     }
     return null;
   };
@@ -507,17 +562,32 @@ const Golf = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
         {filteredCourses.map((course) => {
           const coursePricing = pricingData.find(p => p.courseName === course.name);
-          const weekdayRow = coursePricing?.rows.find(r => r.item === '그린피' && r.division === '주중');
-          const weekendRow = coursePricing?.rows.find(r => r.item === '그린피' && r.division === '주말/공휴일');
           
-          const weekdayMorning = weekdayRow?.morning ?? course.pricing.weekday.morning;
-          const weekdayAfternoon = weekdayRow?.afternoon ?? course.pricing.weekday.afternoon;
-          const weekendMorning = weekendRow?.morning ?? course.pricing.weekend.morning;
-          const weekendAfternoon = weekendRow?.afternoon ?? course.pricing.weekend.afternoon;
+          // Find Green Fee rows with flexible matching for division
+          const weekdayRow = coursePricing?.rows.find(r => 
+            (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
+            (r.division.includes('주중') || r.division.toLowerCase().includes('week'))
+          );
+          const weekendRow = coursePricing?.rows.find(r => 
+            (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
+            (r.division.includes('주말') || r.division.toLowerCase().includes('end'))
+          );
           
-          const isNoCaddy = (coursePricing?.remarks || '').includes('노캐디 라운딩 기본');
-          const promotion = extractPromotion(coursePricing?.remarks || '') || course.promotion;
-          const caddyFee = isNoCaddy ? '' : (extractCaddyFee(coursePricing?.remarks || '') || `RM ${course.pricing.caddyFee}`);
+          const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : course.pricing.weekday.morning;
+          const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : course.pricing.weekday.afternoon;
+          const weekendMorning = weekendRow ? Number(weekendRow.morning) : course.pricing.weekend.morning;
+          const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : course.pricing.weekend.afternoon;
+          
+          // Positional remarks extraction
+          const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
+          
+          // Blue Section: 1st, 2nd, 4th lines
+          const travelTimeText = remarksLines[0] || `숙소(KSL)에서 ${course.travelTime}분 소요`;
+          const courseInfoText = remarksLines[1] || `${course.holes}홀 • ${course.difficulty} 난이도 • ${course.nightGolf ? '야간 가능' : '주간 전용'}`;
+          const promotionText = remarksLines[3] || course.promotion;
+          
+          // Green Section: 3rd line
+          const bottomInfoText = remarksLines[2] || `RM ${course.pricing.caddyFee}`;
 
           return (
             <motion.div 
@@ -555,16 +625,16 @@ const Golf = () => {
                 <div className="space-y-3 text-sm opacity-70 mb-6">
                   <div className="flex items-center gap-2">
                     <Clock size={14} />
-                    <span>숙소(KSL)에서 {course.travelTime}분 소요</span>
+                    <span>{travelTimeText}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Info size={14} />
-                    <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
+                    <span>{courseInfoText}</span>
                   </div>
-                  {promotion && (
+                  {promotionText && (
                     <div className="flex items-center gap-2 text-lime font-medium">
                       <Star size={14} fill="currentColor" />
-                      <span>{promotion}</span>
+                      <span>{promotionText}</span>
                     </div>
                   )}
                 </div>
@@ -589,7 +659,7 @@ const Golf = () => {
                     <span>RM {weekendAfternoon}</span>
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
-                    <span>{caddyFee}</span>
+                    <span>{bottomInfoText}</span>
                   </div>
                 </div>
 
@@ -802,7 +872,12 @@ const Pricing = () => {
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      // Sort by order field
+      data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("Pricing fetch error (Pricing):", error);
       setLoading(false);
     });
 
@@ -904,7 +979,12 @@ const Booking = () => {
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      // Sort by order field
+      data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
+      setPricingLoading(false);
+    }, (error) => {
+      console.error("Pricing fetch error (Booking):", error);
       setPricingLoading(false);
     });
 
@@ -1636,6 +1716,7 @@ interface CoursePricing {
   remarks: string;
   adminMemo?: string;
   rows: PricingRow[];
+  order?: number;
 }
 
 interface QuoteRequest {
@@ -1708,13 +1789,32 @@ const Admin = () => {
   const [isMigrating, setIsMigrating] = useState(false);
 
   const handleMigration = async () => {
+    if (user?.email !== 'cskim1747@gmail.com') {
+      showAlert('마이그레이션을 위해서는 반드시 cskim1747@gmail.com 계정으로 구글 로그인을 해야 합니다.');
+      return;
+    }
+
     showConfirm('로컬 데이터를 Firebase로 마이그레이션하시겠습니까? 기존 데이터가 덮어씌워질 수 있습니다.', async () => {
       setIsMigrating(true);
       closeModal();
       try {
         // Migrate Pricing
-        const pricingPromises = (localPricing as CoursePricing[]).map(course => {
-          return setDoc(doc(db, 'pricing', course.id), course);
+        const pricingPromises = (localPricing as any[]).map(course => {
+          // Ensure it matches CoursePricing structure
+          const formattedCourse: CoursePricing = {
+            id: course.id,
+            courseName: course.courseName,
+            remarks: course.remarks || course.rows?.map((r: any) => r.remarks).filter(Boolean).join('\n') || '',
+            rows: (course.rows || []).map((r: any) => ({
+              item: r.item,
+              division: r.division,
+              morning: r.morning,
+              afternoon: r.afternoon
+            }))
+          };
+          return setDoc(doc(db, 'pricing', formattedCourse.id), formattedCourse).catch(err => {
+            throw new Error(handleFirestoreError(err, OperationType.WRITE, `pricing/${formattedCourse.id}`));
+          });
         });
 
         // Migrate Quotes
@@ -1723,14 +1823,16 @@ const Admin = () => {
           return setDoc(doc(db, 'quotes', quoteId), {
             ...quote,
             serverTimestamp: serverTimestamp()
+          }).catch(err => {
+            throw new Error(handleFirestoreError(err, OperationType.WRITE, `quotes/${quoteId}`));
           });
         });
 
         await Promise.all([...pricingPromises, ...quotesPromises]);
         showAlert('데이터 마이그레이션이 완료되었습니다.');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Migration error:', error);
-        showAlert('마이그레이션 중 오류가 발생했습니다.');
+        showAlert(error.message || '마이그레이션 중 오류가 발생했습니다.');
       } finally {
         setIsMigrating(false);
       }
@@ -1774,7 +1876,11 @@ const Admin = () => {
     
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      // Sort by order field
+      data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
+    }, (error) => {
+      console.error("Pricing fetch error (Admin):", error);
     });
 
     const q = query(collection(db, 'quotes'), orderBy('timestamp', 'desc'));
@@ -1801,6 +1907,11 @@ const Admin = () => {
   }, [fetchData]);
 
   const handleSave = async (dataToSave = pricingData) => {
+    if (user?.email !== 'cskim1747@gmail.com') {
+      showAlert('데이터 저장을 위해서는 반드시 cskim1747@gmail.com 계정으로 구글 로그인을 해야 합니다.');
+      return;
+    }
+
     // Validation
     const isValid = dataToSave.every(course => {
       if (!course.courseName.trim()) return false;
@@ -1834,23 +1945,26 @@ const Admin = () => {
     setIsSaving(true);
     try {
       // Save each course pricing to Firestore
-      const savePromises = dataToSave.map(course => {
+      const savePromises = dataToSave.map((course, index) => {
         const cleanedCourse = {
           ...course,
+          order: index, // Save current order
           rows: course.rows.map(row => ({
             ...row,
             morning: Number(row.morning),
             afternoon: Number(row.afternoon)
           }))
         };
-        return setDoc(doc(db, 'pricing', course.id), cleanedCourse);
+        return setDoc(doc(db, 'pricing', course.id), cleanedCourse).catch(err => {
+          throw new Error(handleFirestoreError(err, OperationType.WRITE, `pricing/${course.id}`));
+        });
       });
 
       await Promise.all(savePromises);
       showAlert('저장되었습니다');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save error:", error);
-      showAlert('저장에 실패했습니다');
+      showAlert(error.message || '저장에 실패했습니다');
     } finally {
       setIsSaving(false);
     }
@@ -1874,7 +1988,8 @@ const Admin = () => {
         { item: '그린피', division: '주말/공휴일', morning: 0, afternoon: 0 },
         { item: '버기피', division: '공통', morning: 0, afternoon: 0 },
         { item: '캐디피', division: '공통', morning: 0, afternoon: 0 }
-      ]
+      ],
+      order: pricingData.length
     };
     setPricingData([...pricingData, newCourse]);
   };
@@ -2037,6 +2152,18 @@ const Admin = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div>
           <h1 className="text-6xl serif mb-2">관리도구</h1>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-xs opacity-40">
+              로그인 계정: <span className={cn(user?.email === 'cskim1747@gmail.com' ? "text-lime" : "text-red-400")}>
+                {user?.email || (user?.isAnonymous ? "익명 사용자" : "로그인 안 됨")}
+              </span>
+            </p>
+            {user?.email !== 'cskim1747@gmail.com' && (
+              <p className="text-[10px] text-red-400/60 font-medium bg-red-400/10 px-2 py-0.5 rounded">
+                쓰기 권한 없음 (구글 로그인 필요)
+              </p>
+            )}
+          </div>
           <div className="flex gap-6 mt-4">
             <button 
               onClick={() => setActiveTab('pricing')}
@@ -2823,13 +2950,15 @@ const Gallery = () => {
 
 export default function App() {
   useEffect(() => {
-    // Test connection and sign in anonymously for security rules
+    // Test connection - we don't need to sign in anonymously if rules allow public read/create
     const testConnection = async () => {
       try {
-        await signInAnonymously(auth);
-        // We don't necessarily need to get a doc, just signing in is enough for rules
+        // Just a simple check if Firebase is initialized
+        if (!auth.app) {
+          console.error("Firebase not initialized");
+        }
       } catch (error) {
-        console.error("Firebase Auth error:", error);
+        console.error("Firebase check error:", error);
       }
     };
     testConnection();

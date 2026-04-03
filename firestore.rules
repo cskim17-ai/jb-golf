@@ -1,60 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
+    
+    // [헬퍼 함수]
     function isAuthenticated() {
       return request.auth != null;
     }
     
     function isAdmin() {
+      // 이메일 주소 또는 UID를 통해 관리자 권한을 확인합니다.
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-         (request.auth.token.email == "cskim1747@gmail.com" && request.auth.token.email_verified == true));
+             (request.auth.token.email == "cskim1747@gmail.com" || 
+              request.auth.uid == "3H9K9FXktGgDrxEkm6zqzGWoaxf1");
     }
 
-    function isValidPricing(data) {
-      return data.id is string &&
-             data.courseName is string &&
-             data.rows is list;
-    }
-
-    function isValidQuote(data) {
-      return data.id is string &&
-             data.timestamp is string &&
-             data.from_name is string &&
-             data.email is string &&
-             data.total_myr is string &&
-             data.total_krw is string;
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
-    
-    // Pricing collection
-    match /pricing/{courseId} {
-      // Publicly readable for booking and course info
+    // 1. 가격 정보: 누구나 읽기 가능, 관리자만 수정
+    match /pricing/{document=**} {
       allow read: if true;
-      // Only admin can manage pricing
-      allow write: if isAdmin() && isValidPricing(request.resource.data);
+      allow write: if isAdmin();
     }
 
-    // Quotes collection
-    match /quotes/{quoteId} {
-      // Only admin can see all quotes
-      allow read: if isAdmin();
-      // Anyone can submit a quote request
-      allow create: if isValidQuote(request.resource.data);
-      // Only admin can update or delete quotes
+    // 2. 견적/상담 요청: 누구나 생성 가능, 읽기는 '모두' 또는 '관리자'
+    match /quotes/{document=**} {
+      allow read: if true; 
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
-    // Users collection (for roles)
+    // 3. 사용자 프로필: 본인 정보는 본인이 읽고 쓸 수 있어야 함
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+      // 본인이거나 관리자일 때만 읽기/쓰기 허용
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
   }
 }
