@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Menu, X, Calendar, Users, MapPin, 
@@ -7,8 +7,8 @@ import {
   Calculator, Map as MapIcon,
   Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight,
-  CheckCircle2, AlertCircle, Send,
-  Plus, Trash2
+  CheckCircle2, AlertCircle, Send, Search,
+  Plus, Trash2, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -17,6 +17,7 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import emailjs from '@emailjs/browser';
 
+import html2canvas from 'html2canvas';
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
@@ -38,6 +39,7 @@ const Navbar = () => {
     { name: 'Pricing', path: '/pricing' },
     { name: 'Booking', path: '/booking' },
     { name: 'Gallery', path: '/gallery' },
+    { name: '관리자 기능', path: '/admin' },
   ];
 
   return (
@@ -423,10 +425,52 @@ const Home = () => {
 
 const Golf = () => {
   const [filter, setFilter] = useState<'All' | 'Premium' | 'Value' | 'Accessibility'>('All');
-  
+  const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/pricing')
+      .then(res => res.json())
+      .then(data => {
+        setPricingData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
   const filteredCourses = filter === 'All' 
     ? GOLF_COURSES 
     : GOLF_COURSES.filter(c => c.category === filter);
+
+  const extractPromotion = (remarks: string) => {
+    if (!remarks) return null;
+    const lines = remarks.split('\n');
+    const promoLine = lines.find(line => line.includes('프로모션'));
+    if (promoLine) {
+      return promoLine.replace(/^- /, '').trim();
+    }
+    return null;
+  };
+
+  const extractCaddyFee = (remarks: string) => {
+    if (!remarks) return null;
+    const lines = remarks.split('\n');
+    const caddyLine = lines.find(line => line.includes('캐디피'));
+    if (caddyLine) {
+      return caddyLine.replace(/^- /, '').trim();
+    }
+    return null;
+  };
+
+  if (loading) return (
+    <div className="pt-40 pb-24 px-6 text-center">
+      <div className="w-12 h-12 border-4 border-lime/30 border-t-lime rounded-full animate-spin mx-auto mb-4" />
+      <p className="serif italic opacity-60">가격 정보를 불러오는 중...</p>
+    </div>
+  );
 
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
@@ -449,92 +493,106 @@ const Golf = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-        {filteredCourses.map((course) => (
-          <motion.div 
-            layout
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            key={course.id} 
-            className="group flex flex-col h-full"
-          >
-            <div className="flex-grow">
-              <a 
-                href={course.websiteUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
-              >
-                <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-                <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
-                  {course.category}
-                </div>
-              </a>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl serif">{course.name}</h3>
+        {filteredCourses.map((course) => {
+          const coursePricing = pricingData.find(p => p.courseName === course.name);
+          const weekdayRow = coursePricing?.rows.find(r => r.item === '그린피' && r.division === '주중');
+          const weekendRow = coursePricing?.rows.find(r => r.item === '그린피' && r.division === '주말/공휴일');
+          
+          const weekdayMorning = weekdayRow?.morning ?? course.pricing.weekday.morning;
+          const weekdayAfternoon = weekdayRow?.afternoon ?? course.pricing.weekday.afternoon;
+          const weekendMorning = weekendRow?.morning ?? course.pricing.weekend.morning;
+          const weekendAfternoon = weekendRow?.afternoon ?? course.pricing.weekend.afternoon;
+          
+          const isNoCaddy = (coursePricing?.remarks || '').includes('노캐디 라운딩 기본');
+          const promotion = extractPromotion(coursePricing?.remarks || '') || course.promotion;
+          const caddyFee = isNoCaddy ? '' : (extractCaddyFee(coursePricing?.remarks || '') || `RM ${course.pricing.caddyFee}`);
+
+          return (
+            <motion.div 
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              key={course.id} 
+              className="group flex flex-col h-full"
+            >
+              <div className="flex-grow">
                 <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + (course.address || 'Johor Bahru'))}`}
-                  target="_blank"
+                  href={course.websiteUrl} 
+                  target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
-                  title="Google Maps"
+                  className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
                 >
-                  <MapIcon size={18} />
+                  <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                  <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
+                    {course.category}
+                  </div>
                 </a>
-              </div>
-              
-              <div className="space-y-3 text-sm opacity-70 mb-6">
-                <div className="flex items-center gap-2">
-                  <Clock size={14} />
-                  <span>숙소(KSL)에서 {course.travelTime}분 소요</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-2xl serif">{course.name}</h3>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + (course.address || 'Johor Bahru'))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
+                    title="Google Maps"
+                  >
+                    <MapIcon size={18} />
+                  </a>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Info size={14} />
-                  <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
-                </div>
-                {course.promotion && (
-                  <div className="flex items-center gap-2 text-lime font-medium">
-                    <Star size={14} fill="currentColor" />
-                    <span>Promotion: {course.promotion}</span>
+                
+                <div className="space-y-3 text-sm opacity-70 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} />
+                    <span>숙소(KSL)에서 {course.travelTime}분 소요</span>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* Detailed Pricing Table - Aligned to bottom */}
-            <div className="mt-auto">
-              <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
-                <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
-                  <span>Type</span>
-                  <span>Morning</span>
-                  <span>Afternoon</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 mb-1">
-                  <span className="font-medium">Weekday</span>
-                  <span>RM {course.pricing.weekday.morning}</span>
-                  <span>RM {course.pricing.weekday.afternoon}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <span className="font-medium">Weekend</span>
-                  <span>RM {course.pricing.weekend.morning}</span>
-                  <span>RM {course.pricing.weekend.afternoon}</span>
-                </div>
-                <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
-                  <span>Caddy Fee: RM {course.pricing.caddyFee}</span>
-                  <span>Senior: -RM {course.pricing.seniorDiscount}</span>
+                  <div className="flex items-center gap-2">
+                    <Info size={14} />
+                    <span>{course.holes}홀 • {course.difficulty} 난이도 • {course.nightGolf ? '야간 가능' : '주간 전용'}</span>
+                  </div>
+                  {promotion && (
+                    <div className="flex items-center gap-2 text-lime font-medium">
+                      <Star size={14} fill="currentColor" />
+                      <span>{promotion}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-white/10">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
-                    <p className="text-xl serif">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+              {/* Detailed Pricing Table - Aligned to bottom */}
+              <div className="mt-auto">
+                <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
+                  <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
+                    <span>Type</span>
+                    <span>Morning</span>
+                    <span>Afternoon</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mb-1">
+                    <span className="font-medium">Weekday</span>
+                    <span>RM {weekdayMorning}</span>
+                    <span>RM {weekdayAfternoon}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <span className="font-medium">Weekend</span>
+                    <span>RM {weekendMorning}</span>
+                    <span>RM {weekendAfternoon}</span>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
+                    <span>{caddyFee}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
+                      <p className="text-xl serif">₩{(weekdayMorning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -726,6 +784,28 @@ const Stay = () => {
 
 const Pricing = () => {
   const currentDate = format(new Date(), 'yyyy-MM-dd');
+  const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/pricing')
+      .then(res => res.json())
+      .then(data => {
+        setPricingData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return (
+    <div className="pt-40 pb-24 px-6 text-center">
+      <div className="w-12 h-12 border-4 border-lime/30 border-t-lime rounded-full animate-spin mx-auto mb-4" />
+      <p className="serif italic opacity-60">가격 정보를 불러오는 중...</p>
+    </div>
+  );
 
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
@@ -743,45 +823,45 @@ const Pricing = () => {
         </div>
       </header>
 
-      <div className="overflow-x-auto glass rounded-[40px] p-8 border border-white/10">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
-              <th className="py-4 font-medium">Golf Course</th>
-              <th className="py-4 font-medium">Day Type</th>
-              <th className="py-4 font-medium">Morning (RM)</th>
-              <th className="py-4 font-medium">Morning (KRW)</th>
-              <th className="py-4 font-medium">Afternoon (RM)</th>
-              <th className="py-4 font-medium">Afternoon (KRW)</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm">
-            {GOLF_COURSES.map((course) => (
-              <React.Fragment key={course.id}>
-                <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                  <td rowSpan={2} className="py-6 font-serif text-lg pr-8 align-top">
-                    {course.name}
-                    <div className="text-[10px] tracking-widest uppercase opacity-40 font-sans mt-1">
-                      {course.category}
-                    </div>
-                  </td>
-                  <td className="py-4 opacity-60">Weekday</td>
-                  <td className="py-4 font-medium">{course.pricing.weekday.morning}</td>
-                  <td className="py-4 opacity-60">₩{(course.pricing.weekday.morning * EXCHANGE_RATE).toLocaleString()}</td>
-                  <td className="py-4 font-medium">{course.pricing.weekday.afternoon}</td>
-                  <td className="py-4 opacity-60">₩{(course.pricing.weekday.afternoon * EXCHANGE_RATE).toLocaleString()}</td>
-                </tr>
-                <tr className="border-b border-white/10 hover:bg-white/[0.02] transition-colors">
-                  <td className="py-4 opacity-60">Weekend</td>
-                  <td className="py-4 font-medium">{course.pricing.weekend.morning}</td>
-                  <td className="py-4 opacity-60">₩{(course.pricing.weekend.morning * EXCHANGE_RATE).toLocaleString()}</td>
-                  <td className="py-4 font-medium">{course.pricing.weekend.afternoon}</td>
-                  <td className="py-4 opacity-60">₩{(course.pricing.weekend.afternoon * EXCHANGE_RATE).toLocaleString()}</td>
-                </tr>
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-12">
+        {pricingData.map((course) => (
+          <div key={course.id} className="glass rounded-[40px] p-8 border border-white/10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <h2 className="text-3xl serif">{course.courseName}</h2>
+              {course.remarks && (
+                <p className="text-xs opacity-50 italic max-w-md text-right whitespace-pre-wrap">
+                  * {course.remarks}
+                </p>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                    <th className="py-4 font-medium">항목</th>
+                    <th className="py-4 font-medium">구분</th>
+                    <th className="py-4 font-medium text-right">오전 (RM)</th>
+                    <th className="py-4 font-medium text-right">오전 (KRW)</th>
+                    <th className="py-4 font-medium text-right">오후 (RM)</th>
+                    <th className="py-4 font-medium text-right">오후 (KRW)</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {course.rows.map((row, idx) => (
+                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                      <td className="py-4 font-medium">{row.item}</td>
+                      <td className="py-4 opacity-60">{row.division}</td>
+                      <td className="py-4 text-right font-medium">RM {row.morning}</td>
+                      <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * EXCHANGE_RATE).toLocaleString()}</td>
+                      <td className="py-4 text-right font-medium">RM {row.afternoon}</td>
+                      <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * EXCHANGE_RATE).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-12 p-8 glass rounded-3xl border border-white/10">
@@ -808,6 +888,22 @@ const Booking = () => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [openCalendarKey, setOpenCalendarKey] = useState<string | null>(null);
+  const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
+  const [pricingLoading, setPricingLoading] = useState(true);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch('/api/pricing')
+      .then(res => res.json())
+      .then(data => {
+        setPricingData(data);
+        setPricingLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setPricingLoading(false);
+      });
+  }, []);
 
   const handleOpenQuoteModal = () => {
     // Check if all selected courses have at least one date selected in each of their schedules
@@ -982,9 +1078,21 @@ const Booking = () => {
     return selectedCourses.reduce((acc, id) => {
       const course = GOLF_COURSES.find(c => c.id === id);
       if (!course) return acc;
+      
+      const adminCourse = pricingData.find(c => c.courseName.includes(course.name) || course.name.includes(c.courseName));
+      
       const schedules = options[id] || [];
       return acc + schedules.reduce((sAcc, opt) => {
-        const price = course.pricing[opt.day][opt.time];
+        let price = course.pricing[opt.day][opt.time];
+        
+        if (adminCourse) {
+          const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
+          const row = adminCourse.rows.find(r => r.item.includes('그린피') && r.division === division);
+          if (row) {
+            price = Number(row[opt.time]);
+          }
+        }
+        
         const count = opt.dates?.length || 0;
         return sAcc + (price * count);
       }, 0);
@@ -993,7 +1101,7 @@ const Booking = () => {
 
   const totalMYR = calculateTotal();
 
-  const sendEmail = (e: React.FormEvent) => {
+  const sendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (selectedCourses.length === 0) {
@@ -1007,6 +1115,27 @@ const Booking = () => {
     }
 
     setIsSending(true);
+
+    let receiptImageBase64 = '';
+    try {
+      if (receiptRef.current) {
+        // 💡 캡처 시 버튼 등 불필요한 요소 숨기기 위해 임시 처리 가능하지만 
+        // 여기서는 전체를 캡처합니다.
+        const canvas = await html2canvas(receiptRef.current, {
+          backgroundColor: '#1a2e1a', // forest 색상과 유사하게
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          ignoreElements: (element) => {
+            // 견적 문의하기 버튼은 제외하고 캡처
+            return element.tagName === 'BUTTON' && element.textContent?.includes('견적 문의하기');
+          }
+        });
+        receiptImageBase64 = canvas.toDataURL('image/png');
+      }
+    } catch (error) {
+      console.error('이미지 캡처 실패:', error);
+    }
 
     const summary = selectedCourses.map(id => {
       const course = GOLF_COURSES.find(c => c.id === id);
@@ -1026,11 +1155,14 @@ const Booking = () => {
       phone: String(quoteForm.phone),
       contact: `${quoteForm.email} / ${quoteForm.phone}`,
       golf_courses: String(quoteForm.golf_courses),
-      schedule: String(quoteForm.travel_period),
+      travel_period: String(quoteForm.travel_period),
+      total_cost: `RM ${totalMYR} / ₩${(totalMYR * EXCHANGE_RATE).toLocaleString()}`,
+      schedule: `${quoteForm.travel_period} (전체 비용: RM ${totalMYR} / ₩${(totalMYR * EXCHANGE_RATE).toLocaleString()})`,
       message: String(quoteForm.message),
       total_myr: String(totalMYR),
       total_krw: (totalMYR * EXCHANGE_RATE).toLocaleString() + '원',
-      summary: String(summary)
+      summary: String(summary),
+      receipt_image: receiptImageBase64 // 이미지 데이터 추가
     };
 
     const serviceId = "service_jb_golf";
@@ -1038,6 +1170,13 @@ const Booking = () => {
     const publicKey = "FBsRuyiHJUVlj-ptY";
 
     console.log("EmailJS 전송 시도:", { serviceId, templateId, templateParams });
+
+    // 백엔드에 견적 내역 저장
+    fetch('/api/quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(templateParams)
+    }).catch(err => console.error('견적 저장 실패:', err));
 
     // 초기화 및 전송
     emailjs.send(serviceId, templateId, templateParams, {
@@ -1234,7 +1373,7 @@ const Booking = () => {
 
         {/* Receipt Area */}
         <div className="relative">
-          <div className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 flex flex-col">
+          <div ref={receiptRef} className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 flex flex-col">
             <div className="absolute top-0 left-0 w-full h-2 bg-lime shrink-0" />
             <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 shrink-0">
               <h2 className="text-3xl serif">Receipt Summary</h2>
@@ -1251,7 +1390,16 @@ const Booking = () => {
                   if (!course || schedules.length === 0) return null;
                   
                   return schedules.map(opt => {
-                    const price = course.pricing[opt.day][opt.time];
+                    let price = course.pricing[opt.day][opt.time];
+                    const adminCourse = pricingData.find(c => c.courseName.includes(course.name) || course.name.includes(c.courseName));
+                    if (adminCourse) {
+                      const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
+                      const row = adminCourse.rows.find(r => r.item.includes('그린피') && r.division === division);
+                      if (row) {
+                        price = Number(row[opt.time]);
+                      }
+                    }
+                    
                     return (
                       <div key={opt.scheduleId} className="flex justify-between items-start gap-4 mb-4 last:mb-0">
                         <div className="flex-grow">
@@ -1447,6 +1595,823 @@ const Booking = () => {
                   )}
                 </button>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const AVAILABLE_GOLF_COURSES = [
+  '포레스트 시티 (Forest City)',
+  '탄중푸테리 CC (Tanjung Puteri)',
+  '호라이즌힐스 골프 (Horizon Hills)',
+  '폰데로사 골프 (Ponderosa)',
+  '오스틴하이츠 골프 (Austin Heights)',
+  '스타힐 CC (Starhill)',
+  '다이만18CC (Daiman 18)',
+  '임피안에마스 (Impian Emas)',
+  '퍼마스 자야 골프클럽 (Permas Jaya)',
+  'IOI 팜 빌라 (IOI Palm Villa)',
+  '세니봉 (Senibong)'
+];
+
+interface PricingRow {
+  item: string;
+  division: string;
+  morning: number | string;
+  afternoon: number | string;
+}
+
+interface CoursePricing {
+  id: string;
+  courseName: string;
+  remarks: string;
+  adminMemo?: string;
+  rows: PricingRow[];
+}
+
+interface QuoteRequest {
+  id: string;
+  timestamp: string;
+  from_name: string;
+  email: string;
+  phone: string;
+  golf_courses: string;
+  travel_period: string;
+  message: string;
+  total_myr: string;
+  total_krw: string;
+  summary: string;
+}
+
+const Admin = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'pricing' | 'quotes'>('pricing');
+  const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
+  const [quotesData, setQuotesData] = useState<QuoteRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [password, setPassword] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  
+  // Filters for quotes
+  const [filterName, setFilterName] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
+
+  const [modal, setModal] = useState<{
+    type: 'alert' | 'confirm' | null;
+    message: string;
+    onConfirm?: () => void;
+  }>({ type: null, message: '' });
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === '9175938') {
+      setIsAuthorized(true);
+      setFailedAttempts(0);
+    } else {
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      if (newAttempts >= 5) {
+        showAlert('비밀번호를 5회 이상 틀렸습니다. 메인 화면으로 이동합니다.');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        showAlert(`비밀번호가 틀렸습니다. (남은 횟수: ${5 - newAttempts})`);
+      }
+      setPassword('');
+    }
+  };
+
+  const showAlert = (message: string) => {
+    setModal({ type: 'alert', message });
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void) => {
+    setModal({ type: 'confirm', message, onConfirm });
+  };
+
+  const closeModal = () => {
+    setModal({ type: null, message: '' });
+  };
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    Promise.all([
+      fetch('/api/pricing').then(res => res.json()),
+      fetch('/api/quotes').then(res => res.json())
+    ])
+      .then(([pricing, quotes]) => {
+        setPricingData(pricing);
+        setQuotesData(quotes);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleSave = (dataToSave = pricingData) => {
+    // Validation
+    const isValid = dataToSave.every(course => {
+      if (!course.courseName.trim()) return false;
+      return course.rows.every(row => {
+        // Check if morning/afternoon are empty strings or NaN
+        const m = typeof row.morning === 'string' ? row.morning.trim() : row.morning;
+        const a = typeof row.afternoon === 'string' ? row.afternoon.trim() : row.afternoon;
+        
+        if (m === '' || m === null || isNaN(Number(m))) return false;
+        if (a === '' || a === null || isNaN(Number(a))) return false;
+        
+        return true;
+      });
+    });
+
+    if (!isValid) {
+      showAlert('입력란을 확인해 주세요');
+      return;
+    }
+
+    // Convert all values to numbers before saving
+    const cleanedData = dataToSave.map(course => ({
+      ...course,
+      rows: course.rows.map(row => ({
+        ...row,
+        morning: Number(row.morning),
+        afternoon: Number(row.afternoon)
+      }))
+    }));
+
+    setIsSaving(true);
+    fetch('/api/pricing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleanedData),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showAlert('저장되었습니다.');
+      } else {
+        showAlert('저장에 실패했습니다.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert('저장 중 오류가 발생했습니다.');
+    })
+    .finally(() => {
+      setIsSaving(false);
+    });
+  };
+
+  const addCourse = () => {
+    const usedNames = pricingData.map(c => c.courseName);
+    const availableNames = AVAILABLE_GOLF_COURSES.filter(name => !usedNames.includes(name));
+    
+    if (availableNames.length === 0) {
+      showAlert('더 이상 추가할 수 있는 골프장이 없습니다.');
+      return;
+    }
+
+    const newCourse: CoursePricing = {
+      id: Date.now().toString(),
+      courseName: availableNames[0],
+      remarks: '',
+      rows: [
+        { item: '그린피', division: '주중', morning: 0, afternoon: 0 },
+        { item: '그린피', division: '주말/공휴일', morning: 0, afternoon: 0 },
+        { item: '버기피', division: '공통', morning: 0, afternoon: 0 },
+        { item: '캐디피', division: '공통', morning: 0, afternoon: 0 }
+      ]
+    };
+    setPricingData([...pricingData, newCourse]);
+  };
+
+  const removeCourse = (id: string) => {
+    showConfirm('삭제하시겠습니까?', () => {
+      const newData = pricingData.filter(c => c.id !== id);
+      setPricingData(newData);
+      handleSave(newData);
+      closeModal();
+    });
+  };
+
+  const addRow = (courseId: string) => {
+    setPricingData(pricingData.map(course => {
+      if (course.id === courseId) {
+        const greenFeeCount = course.rows.filter(r => r.item === '그린피').length;
+        const buggyFeeCount = course.rows.filter(r => r.item === '버기피').length;
+        const caddyFeeCount = course.rows.filter(r => r.item === '캐디피').length;
+
+        // Default to 그린피 if possible
+        let newItem = '그린피';
+        if (greenFeeCount >= 2) {
+          if (buggyFeeCount < 1) newItem = '버기피';
+          else if (caddyFeeCount < 1) newItem = '캐디피';
+          else {
+            showAlert('입력할 수 있는 항목이 없습니다.');
+            return course;
+          }
+        }
+
+        const newRow = { 
+          item: newItem, 
+          division: newItem === '그린피' ? '주중' : '공통', 
+          morning: 0, 
+          afternoon: 0
+        };
+        return { ...course, rows: [...course.rows, newRow] };
+      }
+      return course;
+    }));
+  };
+
+  const removeRow = (courseId: string, rowIndex: number) => {
+    setPricingData(pricingData.map(course => {
+      if (course.id === courseId) {
+        const newRows = course.rows.filter((_, idx) => idx !== rowIndex);
+        return { ...course, rows: newRows };
+      }
+      return course;
+    }));
+  };
+
+  const updateRow = (courseId: string, rowIndex: number, field: keyof PricingRow, value: any) => {
+    setPricingData(pricingData.map(course => {
+      if (course.id === courseId) {
+        const newRows = [...course.rows];
+        newRows[rowIndex] = { ...newRows[rowIndex], [field]: value };
+        return { ...course, rows: newRows };
+      }
+      return course;
+    }));
+  };
+
+  const updateCourseField = (id: string, field: 'courseName' | 'remarks' | 'adminMemo', value: string) => {
+    setPricingData(pricingData.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const moveCourse = (index: number, direction: 'up' | 'down') => {
+    const newData = [...pricingData];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex < 0 || targetIndex >= newData.length) return;
+    
+    [newData[index], newData[targetIndex]] = [newData[targetIndex], newData[index]];
+    setPricingData(newData);
+  };
+
+  const filteredQuotes = quotesData.filter(quote => {
+    const matchesName = quote.from_name.toLowerCase().includes(filterName.toLowerCase());
+    const quoteDate = new Date(quote.timestamp);
+    const matchesStartDate = filterStartDate ? quoteDate >= new Date(filterStartDate) : true;
+    const matchesEndDate = filterEndDate ? quoteDate <= new Date(filterEndDate + 'T23:59:59') : true;
+    return matchesName && matchesStartDate && matchesEndDate;
+  });
+
+  if (loading) return (
+    <div className="pt-40 pb-24 px-6 text-center">
+      <div className="w-12 h-12 border-4 border-lime/30 border-t-lime rounded-full animate-spin mx-auto mb-4" />
+      <p className="serif italic opacity-60">데이터를 불러오는 중...</p>
+    </div>
+  );
+
+  if (!isAuthorized) {
+    return (
+      <div className="pt-40 pb-24 px-6 max-w-md mx-auto">
+        <div className="glass p-8 rounded-[40px] border border-white/10 text-center">
+          <h1 className="text-3xl serif mb-6">Admin Access</h1>
+          <p className="opacity-60 mb-8 text-sm">관리자 비밀번호를 입력해 주세요.</p>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <input 
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 w-full focus:border-lime outline-none transition-all text-center text-xl tracking-widest"
+              placeholder="•••••••"
+              autoFocus
+            />
+            <button 
+              type="submit"
+              className="bg-lime text-forest w-full py-3 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
+            >
+              확인
+            </button>
+          </form>
+        </div>
+        {modal.type && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div className="glass max-w-sm w-full p-8 rounded-[40px] border border-white/10 text-center">
+              <p className="text-lg mb-8">{modal.message}</p>
+              <button 
+                onClick={closeModal}
+                className="bg-lime text-forest px-8 py-2 rounded-full font-bold"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div>
+          <h1 className="text-6xl serif mb-2">관리도구</h1>
+          <div className="flex gap-6 mt-4">
+            <button 
+              onClick={() => setActiveTab('pricing')}
+              className={cn(
+                "text-lg serif transition-all border-b-2 pb-1",
+                activeTab === 'pricing' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
+              )}
+            >
+              가격 정보 관리
+            </button>
+            <button 
+              onClick={() => setActiveTab('quotes')}
+              className={cn(
+                "text-lg serif transition-all border-b-2 pb-1",
+                activeTab === 'quotes' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
+              )}
+            >
+              견적 요청 내역
+            </button>
+          </div>
+        </div>
+        {activeTab === 'pricing' && (
+          <div className="flex gap-4">
+            <button 
+              onClick={addCourse} 
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all"
+            >
+              <Plus size={18} /> 골프장 추가
+            </button>
+            <button 
+              onClick={() => handleSave()} 
+              disabled={isSaving}
+              className={cn(
+                "bg-lime text-forest px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all",
+                isSaving ? "opacity-50 cursor-not-allowed" : "hover:shadow-[0_0_30px_rgba(163,230,53,0.3)]"
+              )}
+            >
+              {isSaving ? (
+                <div className="w-5 h-5 border-2 border-forest/30 border-t-forest rounded-full animate-spin" />
+              ) : (
+                <Send size={18} />
+              )}
+              {isSaving ? '저장 중...' : '저장하기'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {activeTab === 'pricing' ? (
+        <div className="space-y-12">
+          {pricingData.length === 0 ? (
+            <div className="text-center py-20 glass rounded-[40px] border border-white/10">
+              <p className="opacity-40 italic">등록된 골프장이 없습니다. '골프장 추가' 버튼을 눌러주세요.</p>
+            </div>
+          ) : (
+            pricingData.map((course, index) => (
+            <div key={course.id} className="glass p-6 rounded-[40px] border border-white/10 overflow-hidden relative group">
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => moveCourse(index, 'up')}
+                  disabled={index === 0}
+                  className="p-1 hover:bg-white/10 rounded disabled:opacity-20"
+                >
+                  <ChevronUp size={20} />
+                </button>
+                <button 
+                  onClick={() => moveCourse(index, 'down')}
+                  disabled={index === pricingData.length - 1}
+                  className="p-1 hover:bg-white/10 rounded disabled:opacity-20"
+                >
+                  <ChevronDown size={20} />
+                </button>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6 border-b border-white/10 pb-6 ml-8">
+                <div className="flex-grow w-full space-y-4">
+                  <div className="max-w-xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">골프장명</label>
+                    <select 
+                      value={course.courseName}
+                      onChange={(e) => updateCourseField(course.id, 'courseName', e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl serif w-full focus:border-lime outline-none transition-all appearance-none"
+                    >
+                      {AVAILABLE_GOLF_COURSES.map(name => {
+                        const isUsed = pricingData.some(c => c.courseName === name && c.id !== course.id);
+                        if (isUsed) return null;
+                        return <option key={name} value={name} className="bg-forest text-white">{name}</option>;
+                      })}
+                    </select>
+                  </div>
+                  <div className="max-w-2xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">비고 (골프장 공통)</label>
+                    <textarea 
+                      value={course.remarks || ''}
+                      onChange={(e) => updateCourseField(course.id, 'remarks', e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all resize-none overflow-hidden min-h-[60px]"
+                      placeholder="골프장 관련 공통 비고 내용을 입력하세요"
+                      rows={Math.max(2, (course.remarks || '').split('\n').length)}
+                      onFocus={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                      }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                      }}
+                    />
+                  </div>
+                  <div className="max-w-2xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">관리자 메모 (비공개)</label>
+                    <textarea 
+                      value={course.adminMemo || ''}
+                      onChange={(e) => updateCourseField(course.id, 'adminMemo', e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all resize-none overflow-hidden min-h-[60px] text-lime/80"
+                      placeholder="관리자만 볼 수 있는 메모를 입력하세요"
+                      rows={Math.max(2, (course.adminMemo || '').split('\n').length)}
+                      onFocus={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                      }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                      }}
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={() => removeCourse(course.id)} 
+                  className="p-2 text-red-400 hover:bg-red-400/10 rounded-full transition-all self-start md:self-center"
+                  title="골프장 삭제"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto ml-8">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                      <th className="py-2 font-medium px-3">항목</th>
+                      <th className="py-2 font-medium px-3">구분</th>
+                      <th className="py-2 font-medium px-3 text-center">오전 (RM)</th>
+                      <th className="py-2 font-medium px-3 text-center">오후 (RM)</th>
+                      <th className="py-2 font-medium px-3 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {course.rows.map((row, idx) => (
+                      <tr key={idx} className="border-b border-white/5 last:border-none hover:bg-white/[0.02] transition-colors">
+                        <td className="py-2 px-3">
+                          <select 
+                            value={row.item}
+                            onChange={(e) => updateRow(course.id, idx, 'item', e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 w-full focus:border-lime outline-none text-sm appearance-none"
+                          >
+                            <option value="그린피" className="bg-forest">그린피</option>
+                            <option value="버기피" className="bg-forest">버기피</option>
+                            <option value="캐디피" className="bg-forest">캐디피</option>
+                          </select>
+                        </td>
+                        <td className="py-2 px-3">
+                          <select 
+                            value={row.division}
+                            onChange={(e) => updateRow(course.id, idx, 'division', e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 w-full focus:border-lime outline-none text-sm appearance-none"
+                          >
+                            <option value="주중" className="bg-forest">주중</option>
+                            <option value="주말/공휴일" className="bg-forest">주말/공휴일</option>
+                            <option value="공통" className="bg-forest">공통</option>
+                          </select>
+                        </td>
+                        <td className="py-2 px-3">
+                          <div className="flex justify-center">
+                            <input 
+                              type="number"
+                              value={row.morning}
+                              onChange={(e) => updateRow(course.id, idx, 'morning', e.target.value)}
+                              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 w-24 focus:border-lime outline-none transition-all text-sm text-center"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-2 px-3">
+                          <div className="flex justify-center">
+                            <input 
+                              type="number"
+                              value={row.afternoon}
+                              onChange={(e) => updateRow(course.id, idx, 'afternoon', e.target.value)}
+                              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 w-24 focus:border-lime outline-none transition-all text-sm text-center"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <button onClick={() => removeRow(course.id, idx)} className="text-white/20 hover:text-red-400 transition-colors">
+                            <X size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button 
+                onClick={() => addRow(course.id)}
+                className="mt-4 flex items-center gap-2 text-xs text-lime hover:text-lime/80 transition-colors ml-11"
+              >
+                <Plus size={12} /> 행 추가
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Filters */}
+          <div className="glass p-6 rounded-3xl border border-white/10 flex flex-wrap gap-6 items-end">
+            <div className="flex-grow min-w-[200px]">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">신청자명</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40" size={18} />
+                <input 
+                  type="text"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-2 w-full focus:border-lime outline-none transition-all"
+                  placeholder="이름 검색..."
+                />
+              </div>
+            </div>
+            <div className="w-48">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">시작일</label>
+              <div className="relative">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40" size={18} />
+                <input 
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-2 w-full focus:border-lime outline-none transition-all"
+                />
+              </div>
+            </div>
+            <div className="w-48">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">종료일</label>
+              <div className="relative">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40" size={18} />
+                <input 
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-2 w-full focus:border-lime outline-none transition-all"
+                />
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                setFilterName('');
+                setFilterStartDate('');
+                setFilterEndDate('');
+              }}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-2 rounded-xl transition-all"
+            >
+              초기화
+            </button>
+          </div>
+
+          {/* Quotes Table */}
+          <div className="glass rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                    <th className="p-6 font-medium">문의일시</th>
+                    <th className="p-6 font-medium">신청자명</th>
+                    <th className="p-6 font-medium">연락처</th>
+                    <th className="p-6 font-medium">이메일주소</th>
+                    <th className="p-6 font-medium">선택한 골프장</th>
+                    <th className="p-6 font-medium">희망 일정</th>
+                    <th className="p-6 font-medium text-right">비용 (RM)</th>
+                    <th className="p-6 font-medium text-right">비용 (₩)</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {filteredQuotes.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-12 text-center opacity-40 italic">
+                        검색 결과가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredQuotes.map((quote) => (
+                      <tr key={quote.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="p-6 opacity-60">
+                          {format(new Date(quote.timestamp), 'yyyy-MM-dd HH:mm')}
+                        </td>
+                        <td className="p-6 font-medium">{quote.from_name}</td>
+                        <td className="p-6 opacity-60">{quote.phone}</td>
+                        <td className="p-6 opacity-60">{quote.email}</td>
+                        <td className="p-6">
+                          <button 
+                            onClick={() => setSelectedQuote(quote)}
+                            className="max-w-xs truncate text-lime hover:underline text-left block w-full" 
+                            title="상세 내역 보기"
+                          >
+                            {quote.golf_courses}
+                          </button>
+                        </td>
+                        <td className="p-6 opacity-60">
+                          {quote.travel_period || (quote as any).schedule?.split(' (')[0] || '-'}
+                        </td>
+                        <td className="p-6 text-right font-medium">RM {quote.total_myr}</td>
+                        <td className="p-6 text-right text-lime font-medium">{quote.total_krw}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Modal */}
+      <AnimatePresence>
+        {modal.type && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="glass p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl border border-white/20"
+            >
+              <div className="mb-6">
+                <div className="w-16 h-16 rounded-full bg-lime/10 flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="text-lime" size={32} />
+                </div>
+                <h3 className="text-xl serif text-white mb-2">{modal.message}</h3>
+              </div>
+              
+              <div className="flex gap-3">
+                {modal.type === 'confirm' ? (
+                  <>
+                    <button 
+                      onClick={closeModal}
+                      className="flex-1 py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-sm font-medium"
+                    >
+                      아니오
+                    </button>
+                    <button 
+                      onClick={modal.onConfirm}
+                      className="flex-1 py-3 rounded-xl bg-lime text-forest font-bold hover:shadow-[0_0_20px_rgba(163,230,53,0.3)] transition-all text-sm"
+                    >
+                      예
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={closeModal}
+                    className="w-full py-3 rounded-xl bg-lime text-forest font-bold hover:shadow-[0_0_20px_rgba(163,230,53,0.3)] transition-all text-sm"
+                  >
+                    확인
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quote Detail Modal */}
+      <AnimatePresence>
+        {selectedQuote && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass max-w-2xl w-full rounded-[40px] border border-white/20 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-8 border-b border-white/10 flex justify-between items-center shrink-0">
+                <div>
+                  <h2 className="text-3xl serif text-white">
+                    {selectedQuote.from_name} 님의 견적 요청 상세
+                  </h2>
+                  <p className="text-xs tracking-widest uppercase opacity-40 mt-1">
+                    Quote Request Details
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSelectedQuote(null)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Content - Styled like the Receipt Summary */}
+              <div className="p-8 overflow-y-auto custom-scrollbar flex-grow bg-forest/30">
+                <div className="space-y-8">
+                  {/* Summary Text */}
+                  <div className="space-y-6">
+                    {selectedQuote.summary.split('\n\n').map((block, i) => (
+                      <div key={i} className="glass p-6 rounded-3xl border border-white/5">
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed opacity-80">
+                          {block}
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Totals Section */}
+                  <div className="pt-8 border-t border-white/10 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs tracking-widest uppercase opacity-40">Subtotal (MYR)</span>
+                      <span className="text-2xl serif text-white">RM {selectedQuote.total_myr}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs tracking-widest uppercase text-lime font-bold">Total (KRW)</span>
+                      <span className="text-3xl serif text-lime font-bold">{selectedQuote.total_krw}</span>
+                    </div>
+                  </div>
+
+                  {/* Additional Info */}
+                  <div className="glass p-6 rounded-3xl border border-white/5 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">신청자명</label>
+                        <p className="text-base font-medium">{selectedQuote.from_name}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">문의일시</label>
+                        <p className="text-base">{format(new Date(selectedQuote.timestamp), 'yyyy-MM-dd HH:mm')}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">연락처</label>
+                        <p className="text-base">{selectedQuote.phone}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">이메일</label>
+                        <p className="text-base">{selectedQuote.email}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">희망 일정</label>
+                      <p className="text-base">{selectedQuote.travel_period || (selectedQuote as any).schedule?.split(' (')[0]}</p>
+                    </div>
+                    {selectedQuote.message && (
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">추가 메시지</label>
+                        <p className="text-base opacity-70 italic">"{selectedQuote.message}"</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-white/10 text-center shrink-0">
+                <button 
+                  onClick={() => setSelectedQuote(null)}
+                  className="bg-lime text-forest px-12 py-3 rounded-full font-bold hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
+                >
+                  닫기
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1740,7 +2705,7 @@ const Gallery = () => {
 
 export default function App() {
   return (
-    <Router basename="/jb-golf">
+    <Router>
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
@@ -1751,6 +2716,7 @@ export default function App() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/gallery" element={<Gallery />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>
         <Footer />
