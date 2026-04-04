@@ -88,12 +88,12 @@ export const GALLERY_DATA: GalleryItem[] = [
   {
     id: 'p1',
     type: 'photo',    
-    url: 'image/20250114_171725.jpg', // 수정됨
+    url: '/image/20250114_171725.jpg', // 수정됨
   },
   {
     id: 'p2',
     type: 'photo',    
-    url: 'image/20250115_084441.jpg', // 수정됨
+    url: '/image/20250115_084441.jpg', // 수정됨
   },
   {
     id: 'p3',
