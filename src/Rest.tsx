@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge';
 import { REST_CATEGORIES, REST_DATA } from './restData';
 import { SINGAPORE_DATA } from './restDataSingapore';
 import { MALACCA_DATA } from './restDataMalacca';
+import { SingaporeTransport, MalaccaTransport } from './TransportGuides';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,7 +17,7 @@ const ALL_DATA = [...REST_DATA, ...SINGAPORE_DATA, ...MALACCA_DATA];
 
 const getCategoriesForRegion = (region: string) => {
   if (region === '조호바루') return REST_CATEGORIES;
-  return ['쇼핑 & 라이프스타일', '관광 & 랜드마크', '미식 & 나이트 라이프'];
+  return ['시내 이동방법(KSL몰 기준)', '쇼핑 & 라이프스타일', '관광 & 랜드마크', '미식 & 나이트 라이프'];
 };
 
 export const Rest = () => {
@@ -73,13 +74,23 @@ export const Rest = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {filteredRest.map((item, index) => {
-          const displayImage = item.photoUrl 
-            ? (item.photoUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || item.photoUrl.startsWith('/')) 
-              ? item.photoUrl 
-              : `https://picsum.photos/seed/${item.id}/800/500`
-            : undefined;
+      {activeCategory === '시내 이동방법(KSL몰 기준)' ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-4xl mx-auto"
+        >
+          {activeRegion === '싱가폴' ? <SingaporeTransport /> : <MalaccaTransport />}
+        </motion.div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {filteredRest.map((item, index) => {
+            const isImageCategory = ['쇼핑 & 라이프스타일', '관광 & 랜드마크', '미식 & 나이트 라이프'].includes(item.category);
+          const displayImage = (item.photoUrl && (item.photoUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || item.photoUrl.startsWith('/')))
+            ? item.photoUrl
+            : isImageCategory 
+              ? `https://picsum.photos/seed/${item.id}/800/500` 
+              : undefined;
 
           return (
             <motion.div 
@@ -180,6 +191,7 @@ export const Rest = () => {
         );
         })}
       </div>
+      )}
     </div>
   );
 };
