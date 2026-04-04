@@ -34,8 +34,6 @@ import html2canvas from 'html2canvas';
 import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
-import localPricing from './data/pricing.json';
-import localQuotes from './data/quotes.json';
 
 enum OperationType {
   CREATE = 'create',
@@ -208,6 +206,15 @@ const Footer = () => (
 const GolfCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
+
+  useEffect(() => {
+    const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      setPricingData(data);
+    });
+    return () => unsubscribePricing();
+  }, []);
 
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % GOLF_COURSES.length);
@@ -248,12 +255,12 @@ const GolfCarousel = () => {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 glass rounded-[40px] border border-white/10"
+          className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 glass rounded-[40px] border border-white/10"
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
         >
           {/* Left Card: Premium Guide */}
-          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] px-4 py-8 border border-white/10 h-[500px] flex flex-col">
+          <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] px-4 py-8 border border-white/10 h-[500px] flex flex-col">
             <div className="mb-5 px-3">
               <h3 className="text-2xl serif italic text-lime">Premium Guide</h3>
               <div className="h-px w-12 bg-lime/30 mt-2" />
@@ -268,16 +275,23 @@ const GolfCarousel = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-auto pt-4 border-t border-white/5 px-3">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="opacity-40 uppercase tracking-wider">Travel Time</span>
-                <span className="text-lime font-medium">{course.travelTime} min from KSL</span>
-              </div>
-            </div>
+            {(() => {
+              const coursePricing = pricingData.find(p => p.courseName === course.name);
+              const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
+              const travelTimeText = remarksLines[0] || `${course.travelTime} min from KSL`;
+              
+              return (
+                <div className="mt-auto pt-4 border-t border-white/5 px-3">
+                  <div className="flex items-center justify-center text-xs">
+                    <span className="text-lime font-medium">{travelTimeText}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Center Card: Image with Name & Address */}
-          <div className="md:col-span-2 relative rounded-[32px] overflow-hidden h-[500px]">
+          <div className="md:col-span-6 relative rounded-[32px] overflow-hidden h-[500px]">
             <img 
               src={course.image} 
               alt={course.name} 
@@ -333,66 +347,81 @@ const GolfCarousel = () => {
           </div>
 
           {/* Right Card: Course Info, Pricing, Promotion */}
-          <div className="bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-2.5">
-            {/* Course Info */}
-            <div className="bg-white/5 rounded-2xl p-2.5 border border-white/5">
-              <div className="flex justify-between items-center mb-0.5">
-                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Course Info</h3>
-                <Info size={10} className="text-lime opacity-80" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-white">{course.holes}홀</span>
-                <span className="text-[13px] text-white/90 font-medium">{course.difficulty} • {course.nightGolf ? '야간' : '주간'}</span>
-              </div>
-            </div>
+          {(() => {
+            const coursePricing = pricingData.find(p => p.courseName === course.name);
+            const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
+            
+            const weekdayRow = coursePricing?.rows.find(r => 
+              (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
+              (r.division.includes('주중') || r.division.toLowerCase().includes('week'))
+            );
+            const weekendRow = coursePricing?.rows.find(r => 
+              (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
+              (r.division.includes('주말') || r.division.toLowerCase().includes('end'))
+            );
+            
+            const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : course.pricing.weekday.morning;
+            const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : course.pricing.weekday.afternoon;
+            const weekendMorning = weekendRow ? Number(weekendRow.morning) : course.pricing.weekend.morning;
+            const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : course.pricing.weekend.afternoon;
+            
+            const courseInfoSubText = remarksLines[1] || `${course.difficulty} • ${course.nightGolf ? '야간' : '주간'}`;
+            const promotionSubText = remarksLines[3] || course.promotion || '현재 진행중인 프로모션이 없습니다.';
 
-            {/* Pricing Info */}
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex-1 flex flex-col justify-center">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Pricing (MYR)</h3>
-                <Calculator size={12} className="text-lime opacity-80" />
-              </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-[12px] text-white/60 font-bold self-end">WEEKDAY</div>
-                  <div className="text-right">
-                    <p className="text-[12px] text-white/60 font-medium">AM</p>
-                    <p className="text-base font-bold text-white">RM {course.pricing.weekday.morning}</p>
+            return (
+              <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-2.5">
+                {/* Course Info */}
+                <div className="bg-white/5 rounded-2xl p-2.5 border border-white/5">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">COURSE INFO</h3>
+                    <Info size={10} className="text-lime opacity-80" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-[12px] text-white/60 font-medium">PM</p>
-                    <p className="text-base font-bold text-white">RM {course.pricing.weekday.afternoon}</p>
+                  <div className="flex items-center justify-center">
+                    <span className="text-xs text-white/90 font-medium">{courseInfoSubText}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-[12px] text-white/60 font-bold self-end">WEEKEND</div>
-                  <div className="text-right">
-                    <p className="text-[12px] text-white/60 font-medium">AM</p>
-                    <p className="text-base font-bold text-lime">RM {course.pricing.weekend.morning}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[12px] text-white/60 font-medium">PM</p>
-                    <p className="text-base font-bold text-lime">RM {course.pricing.weekend.afternoon}</p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-white/10 flex justify-between text-[12px] text-white/70 italic font-medium">
-                  <span>Caddy: RM {course.pricing.caddyFee}</span>
-                  <span>Senior: -RM {course.pricing.seniorDiscount}</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Promotion */}
-            <div className="bg-lime/10 rounded-2xl p-2.5 border border-lime/20">
-              <div className="flex justify-between items-center mb-0.5">
-                <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">Promotion</h3>
-                <Star size={10} className="text-lime" fill="currentColor" />
+                {/* Pricing Info */}
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex-1 flex flex-col justify-center">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">PRICING (MYR)</h3>
+                    <Calculator size={12} className="text-lime opacity-80" />
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[12px] text-white/60 font-bold self-end">WEEKDAY</div>
+                      <div className="text-right">
+                        <p className="text-[12px] text-white/60 font-medium">AM</p>
+                        <p className="text-base font-bold text-white">RM {weekdayMorning}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[12px] text-white/60 font-medium">PM</p>
+                        <p className="text-base font-bold text-white">RM {weekdayAfternoon}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-[12px] text-white/60 font-bold self-end">WEEKEND</div>
+                      <div className="text-right">
+                        <p className="text-[12px] text-white/60 font-medium">AM</p>
+                        <p className="text-base font-bold text-lime">RM {weekendMorning}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[12px] text-white/60 font-medium">PM</p>
+                        <p className="text-base font-bold text-lime">RM {weekendAfternoon}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Promotion */}
+                <div className="bg-lime/10 rounded-2xl p-2.5 border border-lime/20 flex items-center justify-center min-h-[60px]">
+                  <p className="text-[13px] text-white font-bold leading-tight text-center">
+                    {promotionSubText}
+                  </p>
+                </div>
               </div>
-              <p className="text-[13px] text-white font-bold leading-tight">
-                {course.promotion || '현재 진행중인 프로모션이 없습니다.'}
-              </p>
-            </div>
-          </div>
+            );
+          })()}
         </motion.div>
       </AnimatePresence>
 
@@ -1786,62 +1815,10 @@ const Admin = () => {
     onConfirm?: () => void;
   }>({ type: null, message: '' });
 
-  const [isMigrating, setIsMigrating] = useState(false);
-
-  const handleMigration = async () => {
-    if (user?.email !== 'cskim1747@gmail.com') {
-      showAlert('마이그레이션을 위해서는 반드시 cskim1747@gmail.com 계정으로 구글 로그인을 해야 합니다.');
-      return;
-    }
-
-    showConfirm('로컬 데이터를 Firebase로 마이그레이션하시겠습니까? 기존 데이터가 덮어씌워질 수 있습니다.', async () => {
-      setIsMigrating(true);
-      closeModal();
-      try {
-        // Migrate Pricing
-        const pricingPromises = (localPricing as any[]).map(course => {
-          // Ensure it matches CoursePricing structure
-          const formattedCourse: CoursePricing = {
-            id: course.id,
-            courseName: course.courseName,
-            remarks: course.remarks || course.rows?.map((r: any) => r.remarks).filter(Boolean).join('\n') || '',
-            rows: (course.rows || []).map((r: any) => ({
-              item: r.item,
-              division: r.division,
-              morning: r.morning,
-              afternoon: r.afternoon
-            }))
-          };
-          return setDoc(doc(db, 'pricing', formattedCourse.id), formattedCourse).catch(err => {
-            throw new Error(handleFirestoreError(err, OperationType.WRITE, `pricing/${formattedCourse.id}`));
-          });
-        });
-
-        // Migrate Quotes
-        const quotesPromises = (localQuotes as any[]).map(quote => {
-          const quoteId = quote.id || Date.now().toString() + Math.random().toString(36).substr(2, 9);
-          return setDoc(doc(db, 'quotes', quoteId), {
-            ...quote,
-            serverTimestamp: serverTimestamp()
-          }).catch(err => {
-            throw new Error(handleFirestoreError(err, OperationType.WRITE, `quotes/${quoteId}`));
-          });
-        });
-
-        await Promise.all([...pricingPromises, ...quotesPromises]);
-        showAlert('데이터 마이그레이션이 완료되었습니다.');
-      } catch (error: any) {
-        console.error('Migration error:', error);
-        showAlert(error.message || '마이그레이션 중 오류가 발생했습니다.');
-      } finally {
-        setIsMigrating(false);
-      }
-    });
-  };
-
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '9175938') {
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '9175938';
+    if (password === adminPassword) {
       setIsAuthorized(true);
       setFailedAttempts(0);
     } else {
@@ -2182,14 +2159,6 @@ const Admin = () => {
               )}
             >
               견적 요청 내역
-            </button>
-            <button 
-              onClick={handleMigration}
-              disabled={isMigrating}
-              className="text-sm serif transition-all opacity-40 hover:opacity-100 flex items-center gap-2"
-            >
-              {isMigrating ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-              데이터 마이그레이션
             </button>
           </div>
         </div>
