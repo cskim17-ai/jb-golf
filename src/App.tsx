@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -25,13 +25,16 @@ import {
   query, 
   orderBy, 
   serverTimestamp,
-  getDocFromServer
+  getDocFromServer,
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { db, auth } from './firebase';
+import * as XLSX from 'xlsx';
 
 import html2canvas from 'html2canvas';
-import { GOLF_COURSES, STAY_UNITS, EXCHANGE_RATE, KSL_LOCATION, type StayUnit } from './constants';
+import { GOLF_COURSES, STAY_UNITS, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
 
@@ -76,6 +79,37 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const ExchangeRateContext = createContext<number>(315);
+
+export const useExchangeRate = () => useContext(ExchangeRateContext);
+
+export const ExchangeRateProvider = ({ children }: { children: React.ReactNode }) => {
+  const [rate, setRate] = useState<number>(315);
+
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const response = await fetch('https://api.exchangerate-api.com/v4/latest/MYR');
+        const data = await response.json();
+        if (data && data.rates && data.rates.KRW) {
+          setRate(Math.round(data.rates.KRW));
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rate:', error);
+      }
+    };
+    fetchRate();
+    const interval = setInterval(fetchRate, 3600000); // Update every hour
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <ExchangeRateContext.Provider value={rate}>
+      {children}
+    </ExchangeRateContext.Provider>
+  );
+};
+
 // --- Components ---
 
 const Navbar = () => {
@@ -89,7 +123,7 @@ const Navbar = () => {
     { name: 'Pricing', path: '/pricing' },
     { name: 'Booking', path: '/booking' },
     { name: 'Gallery', path: '/gallery' },
-    { name: '관리자 기능', path: '/admin' },
+    { name: 'Admin', path: '/admin', onClick: async () => { await signOut(auth); } },
   ];
 
   return (
@@ -112,6 +146,7 @@ const Navbar = () => {
             <Link 
               key={link.path} 
               to={link.path}
+              onClick={link.onClick}
               className={cn(
                 "pill-nav border-none",
                 location.pathname === link.path ? "active-pill" : "text-white/80"
@@ -179,6 +214,7 @@ const Footer = () => (
       </div>
       <div>
         <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">Contact</h3>
+        <p className="text-lg serif">jco119@gmail.com</p>
         <p className="text-lg serif">cskim1747@gmail.com</p>
         <p className="text-xs opacity-80 mt-2">궁금하신 사항은 위 메일로 문의해 주세요</p>
         <p className="text-sm opacity-80 mt-4">야나골 골프클럽</p>
@@ -282,8 +318,8 @@ const GolfCarousel = () => {
               
               return (
                 <div className="mt-auto pt-4 border-t border-white/5 px-3">
-                  <div className="flex items-center justify-center text-xs">
-                    <span className="text-lime font-medium">{travelTimeText}</span>
+                  <div className="flex items-center justify-center text-sm">
+                    <span className="text-lime font-bold">{travelTimeText}</span>
                   </div>
                 </div>
               );
@@ -369,53 +405,53 @@ const GolfCarousel = () => {
             const promotionSubText = remarksLines[3] || course.promotion || '현재 진행중인 프로모션이 없습니다.';
 
             return (
-              <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-2.5">
+                <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-4">
                 {/* Course Info */}
-                <div className="bg-white/5 rounded-2xl p-2.5 border border-white/5">
-                  <div className="flex justify-between items-center mb-0.5">
-                    <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">COURSE INFO</h3>
-                    <Info size={10} className="text-lime opacity-80" />
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">COURSE INFO</h3>
+                    <Info size={12} className="text-lime opacity-80" />
                   </div>
                   <div className="flex items-center justify-center">
-                    <span className="text-xs text-white/90 font-medium">{courseInfoSubText}</span>
+                    <span className="text-sm text-white/90 font-medium">{courseInfoSubText}</span>
                   </div>
                 </div>
 
                 {/* Pricing Info */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex-1 flex flex-col justify-center">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-[13px] font-bold text-lime uppercase tracking-widest">PRICING (MYR)</h3>
-                    <Calculator size={12} className="text-lime opacity-80" />
+                <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex-1 flex flex-col justify-center">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">PRICING (MYR)</h3>
+                    <Calculator size={14} className="text-lime opacity-80" />
                   </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-[12px] text-white/60 font-bold self-end">WEEKDAY</div>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-[13px] text-white/60 font-bold self-end">WEEKDAY</div>
                       <div className="text-right">
-                        <p className="text-[12px] text-white/60 font-medium">AM</p>
-                        <p className="text-base font-bold text-white">RM {weekdayMorning}</p>
+                        <p className="text-[11px] text-white/60 font-medium">AM</p>
+                        <p className="text-lg font-bold text-white">RM {weekdayMorning}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[12px] text-white/60 font-medium">PM</p>
-                        <p className="text-base font-bold text-white">RM {weekdayAfternoon}</p>
+                        <p className="text-[11px] text-white/60 font-medium">PM</p>
+                        <p className="text-lg font-bold text-white">RM {weekdayAfternoon}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-[12px] text-white/60 font-bold self-end">WEEKEND</div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-[13px] text-white/60 font-bold self-end">WEEKEND</div>
                       <div className="text-right">
-                        <p className="text-[12px] text-white/60 font-medium">AM</p>
-                        <p className="text-base font-bold text-lime">RM {weekendMorning}</p>
+                        <p className="text-[11px] text-white/60 font-medium">AM</p>
+                        <p className="text-lg font-bold text-lime">RM {weekendMorning}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[12px] text-white/60 font-medium">PM</p>
-                        <p className="text-base font-bold text-lime">RM {weekendAfternoon}</p>
+                        <p className="text-[11px] text-white/60 font-medium">PM</p>
+                        <p className="text-lg font-bold text-lime">RM {weekendAfternoon}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Promotion */}
-                <div className="bg-lime/10 rounded-2xl p-2.5 border border-lime/20 flex items-center justify-center min-h-[60px]">
-                  <p className="text-[13px] text-white font-bold leading-tight text-center">
+                <div className="bg-lime/10 rounded-2xl p-4 border border-lime/20 flex items-center justify-center min-h-[70px]">
+                  <p className="text-[14px] text-white font-bold leading-tight text-center">
                     {promotionSubText}
                   </p>
                 </div>
@@ -508,6 +544,7 @@ const Golf = () => {
   const [filter, setFilter] = useState<'All' | 'Premium' | 'Value' | 'Accessibility'>('All');
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const exchangeRate = useExchangeRate();
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
@@ -696,7 +733,7 @@ const Golf = () => {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
-                      <p className="text-xl serif">₩{(weekdayMorning * EXCHANGE_RATE).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+                      <p className="text-xl serif">₩{(weekdayMorning * exchangeRate).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
                     </div>
                   </div>
                 </div>
@@ -897,6 +934,7 @@ const Pricing = () => {
   const currentDate = format(new Date(), 'yyyy-MM-dd');
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const exchangeRate = useExchangeRate();
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
@@ -931,7 +969,7 @@ const Pricing = () => {
           </div>
           <div className="text-right space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">Exchange Rate</p>
-            <p className="text-2xl serif">1 MYR = {EXCHANGE_RATE} KRW</p>
+            <p className="text-2xl serif">1 MYR = {exchangeRate} KRW</p>
           </div>
         </div>
       </header>
@@ -965,9 +1003,9 @@ const Pricing = () => {
                       <td className="py-4 font-medium">{row.item}</td>
                       <td className="py-4 opacity-60">{row.division}</td>
                       <td className="py-4 text-right font-medium">RM {row.morning}</td>
-                      <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * EXCHANGE_RATE).toLocaleString()}</td>
+                      <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * exchangeRate).toLocaleString()}</td>
                       <td className="py-4 text-right font-medium">RM {row.afternoon}</td>
-                      <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * EXCHANGE_RATE).toLocaleString()}</td>
+                      <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * exchangeRate).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1004,6 +1042,7 @@ const Booking = () => {
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [pricingLoading, setPricingLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const exchangeRate = useExchangeRate();
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
@@ -1271,11 +1310,11 @@ const Booking = () => {
       contact: `${quoteForm.email} / ${quoteForm.phone}`,
       golf_courses: String(quoteForm.golf_courses),
       travel_period: String(quoteForm.travel_period),
-      total_cost: `RM ${totalMYR} / ₩${(totalMYR * EXCHANGE_RATE).toLocaleString()}`,
-      schedule: `${quoteForm.travel_period} (전체 비용: RM ${totalMYR} / ₩${(totalMYR * EXCHANGE_RATE).toLocaleString()})`,
+      total_cost: `RM ${totalMYR} / ₩${(totalMYR * exchangeRate).toLocaleString()}`,
+      schedule: `${quoteForm.travel_period} (전체 비용: RM ${totalMYR} / ₩${(totalMYR * exchangeRate).toLocaleString()})`,
       message: String(quoteForm.message),
       total_myr: String(totalMYR),
-      total_krw: (totalMYR * EXCHANGE_RATE).toLocaleString() + '원',
+      total_krw: (totalMYR * exchangeRate).toLocaleString() + '원',
       summary: String(summary),
       receipt_image: receiptImageBase64 // 이미지 데이터 추가
     };
@@ -1299,7 +1338,8 @@ const Booking = () => {
       await addDoc(collection(db, 'quotes'), {
         ...templateParams,
         timestamp: new Date().toISOString(),
-        serverTimestamp: serverTimestamp()
+        serverTimestamp: serverTimestamp(),
+        status: '접수확인'
       });
 
       alert('견적 문의가 성공적으로 전송되었습니다!');
@@ -1324,13 +1364,13 @@ const Booking = () => {
           <div>
             <h1 className="text-7xl serif mb-4">Booking</h1>
             <p className="text-sm opacity-40 tracking-widest uppercase">
-              {format(new Date(), 'yyyy.MM.dd')} | Exchange Rate: 1 MYR = {EXCHANGE_RATE} KRW
+              {format(new Date(), 'yyyy.MM.dd')} | Exchange Rate: 1 MYR = {exchangeRate} KRW
             </p>
           </div>
           <div className="text-right">
             <p className="text-[10px] tracking-widest uppercase opacity-40 mb-2">Estimated Total</p>
             <p className="text-5xl serif">RM {totalMYR}</p>
-            <p className="text-xl serif italic opacity-40">₩{(totalMYR * EXCHANGE_RATE).toLocaleString()}</p>
+            <p className="text-xl serif italic opacity-40">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
           </div>
         </div>
       </header>
@@ -1360,7 +1400,7 @@ const Booking = () => {
                       : "glass border-white/10 hover:border-white/30"
                   )}
                 >
-                  <p className="text-sm font-medium">{course.name}</p>
+                  <p className="text-lg font-medium">{course.name}</p>
                   <p className="text-[10px] opacity-40 uppercase mt-1">{course.category}</p>
                 </button>
               ))}
@@ -1435,16 +1475,13 @@ const Booking = () => {
                                           <DayPicker
                                             mode="single"
                                             selected={opt.dates?.[0]}
-                                            onSelect={(date) => updateOption(id, opt.scheduleId, 'dates', date ? [date] : [])}
+                                            onSelect={(date) => {
+                                              updateOption(id, opt.scheduleId, 'dates', date ? [date] : []);
+                                              if (date) setOpenCalendarKey(null);
+                                            }}
                                             disabled={{ before: startOfTomorrow() }}
                                             className="text-white"
                                           />
-                                          <button 
-                                            onClick={() => setOpenCalendarKey(null)}
-                                            className="w-full mt-4 py-2 bg-lime text-forest text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-lime/90 transition-colors"
-                                          >
-                                            선택 완료
-                                          </button>
                                         </motion.div>
                                       </>
                                     )}
@@ -1527,7 +1564,7 @@ const Booking = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium">RM {price * (opt.dates?.length || 1)}</p>
-                          <p className="text-[10px] opacity-40 italic">₩{(price * (opt.dates?.length || 1) * EXCHANGE_RATE).toLocaleString()}</p>
+                          <p className="text-[10px] opacity-40 italic">₩{(price * (opt.dates?.length || 1) * exchangeRate).toLocaleString()}</p>
                         </div>
                       </div>
                     );
@@ -1543,14 +1580,14 @@ const Booking = () => {
               </div>
               <div className="flex justify-between items-center text-lime">
                 <p className="text-xs tracking-widest uppercase font-bold">Total (KRW)</p>
-                <p className="text-3xl serif font-bold">₩{(totalMYR * EXCHANGE_RATE).toLocaleString()}</p>
+                <p className="text-3xl serif font-bold">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
               </div>
             </div>
 
             <div className="mt-10 p-4 bg-white/5 rounded-2xl text-[10px] opacity-60 leading-relaxed">
               <p>• 위 견적은 선택하신 골프장과 스케줄에 따른 예상 금액입니다.</p>
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
-              <p>• 상세 예약 확정은 이메일(cskim1747@gmail.com) 문의를 통해 진행해 주세요.</p>
+              <p>• 상세 예약 확정은 이메일 문의를 통해 진행해 주세요.</p>
             </div>
 
             <button
@@ -1688,7 +1725,7 @@ const Booking = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[11px] tracking-widest uppercase opacity-60">총 예상 금액</span>
-                    <span className="text-base serif text-lime">₩{(totalMYR * EXCHANGE_RATE).toLocaleString()}</span>
+                    <span className="text-base serif text-lime">₩{(totalMYR * exchangeRate).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -1760,6 +1797,7 @@ interface QuoteRequest {
   total_myr: string;
   total_krw: string;
   summary: string;
+  status?: '접수확인' | '답변완료' | '견적확정' | '입금완료';
 }
 
 const Admin = () => {
@@ -1769,25 +1807,31 @@ const Admin = () => {
   const [quotesData, setQuotesData] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [password, setPassword] = useState('');
-  const [failedAttempts, setFailedAttempts] = useState(0);
+  
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser?.email === 'cskim1747@gmail.com') {
-        setIsAuthorized(true);
-      }
-    });
-    return () => unsubscribe();
+    // Clear any existing auth state when entering admin
+    signOut(auth);
+    setUser(null);
   }, []);
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const email = result.user.email;
+      if (email === 'cskim1747@gmail.com' || email === 'jco119@gmail.com') {
+        setUser(result.user);
+      } else {
+        showAlert('관리자에게 문의해 주세요');
+        await signOut(auth);
+        setUser(null);
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      }
     } catch (error) {
       console.error('Google Login Error:', error);
       showAlert('로그인에 실패했습니다.');
@@ -1796,8 +1840,11 @@ const Admin = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setIsAuthorized(false);
+      if (user) {
+        await signOut(auth);
+      }
+      setUser(null);
+      navigate('/');
     } catch (error) {
       console.error('Logout Error:', error);
     }
@@ -1814,27 +1861,6 @@ const Admin = () => {
     message: string;
     onConfirm?: () => void;
   }>({ type: null, message: '' });
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '9175938';
-    if (password === adminPassword) {
-      setIsAuthorized(true);
-      setFailedAttempts(0);
-    } else {
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-      if (newAttempts >= 5) {
-        showAlert('비밀번호를 5회 이상 틀렸습니다. 메인 화면으로 이동합니다.');
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      } else {
-        showAlert(`비밀번호가 틀렸습니다. (남은 횟수: ${5 - newAttempts})`);
-      }
-      setPassword('');
-    }
-  };
 
   const showAlert = (message: string) => {
     setModal({ type: 'alert', message });
@@ -1883,12 +1909,58 @@ const Admin = () => {
     };
   }, [fetchData]);
 
-  const handleSave = async (dataToSave = pricingData) => {
-    if (user?.email !== 'cskim1747@gmail.com') {
-      showAlert('데이터 저장을 위해서는 반드시 cskim1747@gmail.com 계정으로 구글 로그인을 해야 합니다.');
+  const updateQuoteStatus = async (id: string, status: string) => {
+    try {
+      await updateDoc(doc(db, 'quotes', id), { status });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      showAlert('상태 업데이트에 실패했습니다.');
+    }
+  };
+
+  const deleteQuote = async (id: string) => {
+    showConfirm('정말로 이 문의 내역을 삭제하시겠습니까?', async () => {
+      try {
+        await deleteDoc(doc(db, 'quotes', id));
+        if (selectedQuote?.id === id) {
+          setSelectedQuote(null);
+        }
+      } catch (error) {
+        console.error("Error deleting quote:", error);
+        showAlert('삭제에 실패했습니다.');
+      }
+    });
+  };
+
+  const exportToExcel = () => {
+    if (filteredQuotes.length === 0) {
+      showAlert('다운로드할 데이터가 없습니다.');
       return;
     }
 
+    const dataToExport = filteredQuotes.map(quote => ({
+      '문의일시': format(new Date(quote.timestamp), 'yyyy-MM-dd HH:mm'),
+      '신청자명': quote.from_name,
+      '연락처': quote.phone,
+      '이메일주소': quote.email,
+      '선택한 골프장': quote.golf_courses,
+      '희망 일정': quote.travel_period,
+      '비용 (RM)': quote.total_myr,
+      '비용 (₩)': quote.total_krw,
+      '처리상태': quote.status || '접수확인',
+      '추가 메시지': quote.message || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "문의내역");
+    
+    // Generate filename with current date
+    const fileName = `문의내역_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  const handleSave = async (dataToSave = pricingData) => {
     // Validation
     const isValid = dataToSave.every(course => {
       if (!course.courseName.trim()) return false;
@@ -1952,7 +2024,7 @@ const Admin = () => {
     const availableNames = AVAILABLE_GOLF_COURSES.filter(name => !usedNames.includes(name));
     
     if (availableNames.length === 0) {
-      showAlert('더 이상 추가할 수 있는 골프장이 없습니다.');
+      showAlert('관리자가 요청한 골프장에 대해 모두 등록하였습니다. 추가할 경우 관리자에게 문의해 주세요');
       return;
     }
 
@@ -2060,84 +2132,15 @@ const Admin = () => {
     </div>
   );
 
-  if (!isAuthorized) {
-    return (
-      <div className="pt-40 pb-24 px-6 flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
-          <h1 className="text-4xl serif mb-8">관리자 로그인</h1>
-          
-          <div className="space-y-6">
-            <button 
-              onClick={handleGoogleLogin}
-              className="w-full py-4 bg-white text-forest rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-white/90 transition-all"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-              Google 계정으로 로그인
-            </button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-forest px-2 text-white/40">또는 비밀번호 입력</span>
-              </div>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 w-full focus:border-lime outline-none transition-all text-center text-xl tracking-widest"
-                placeholder="•••••••"
-                autoFocus
-              />
-              <button 
-                type="submit"
-                className="bg-lime text-forest w-full py-3 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
-              >
-                확인
-              </button>
-            </form>
-          </div>
-          
-          <p className="mt-8 text-xs opacity-40 leading-relaxed">
-            관리자 계정(cskim1747@gmail.com)으로 로그인하거나<br />
-            지정된 비밀번호를 입력해 주세요.
-          </p>
-        </div>
-        {modal.type && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
-            <div className="glass max-w-sm w-full p-8 rounded-[40px] border border-white/10 text-center">
-              <p className="text-lg mb-8">{modal.message}</p>
-              <button 
-                onClick={closeModal}
-                className="bg-lime text-forest px-8 py-2 rounded-full font-bold"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div>
-          <h1 className="text-6xl serif mb-2">관리도구</h1>
           <div className="flex items-center gap-4 mt-2">
-            <p className="text-xs opacity-40">
-              로그인 계정: <span className={cn(user?.email === 'cskim1747@gmail.com' ? "text-lime" : "text-red-400")}>
-                {user?.email || (user?.isAnonymous ? "익명 사용자" : "로그인 안 됨")}
-              </span>
-            </p>
-            {user?.email !== 'cskim1747@gmail.com' && (
-              <p className="text-[10px] text-red-400/60 font-medium bg-red-400/10 px-2 py-0.5 rounded">
-                쓰기 권한 없음 (구글 로그인 필요)
+            {activeTab === 'pricing' && user && (
+              <p className="text-xs opacity-40">
+                로그인 계정: <span className="text-lime">{user?.email}</span>
               </p>
             )}
           </div>
@@ -2149,7 +2152,7 @@ const Admin = () => {
                 activeTab === 'pricing' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
               )}
             >
-              가격 정보 관리
+              골프장 가격정보
             </button>
             <button 
               onClick={() => setActiveTab('quotes')}
@@ -2158,11 +2161,11 @@ const Admin = () => {
                 activeTab === 'quotes' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
               )}
             >
-              견적 요청 내역
+              문의 내역
             </button>
           </div>
         </div>
-        {activeTab === 'pricing' && (
+        {activeTab === 'pricing' && user && (
           <div className="flex gap-4">
             <button 
               onClick={handleLogout}
@@ -2193,9 +2196,39 @@ const Admin = () => {
             </button>
           </div>
         )}
+        {activeTab === 'quotes' && user && (
+          <div className="flex gap-4">
+            <button 
+              onClick={handleLogout}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all text-xs opacity-60"
+            >
+              로그아웃
+            </button>
+          </div>
+        )}
       </div>
 
-      {activeTab === 'pricing' ? (
+      {!user && (
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
+            <h2 className="text-3xl serif mb-8">
+              {activeTab === 'pricing' ? '가격정보관리 로그인' : '견적요청내역 로그인'}
+            </h2>
+            <button 
+              onClick={handleGoogleLogin}
+              className="w-full py-4 bg-white text-forest rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-white/90 transition-all"
+            >
+              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+              Google 계정으로 로그인
+            </button>
+            <p className="mt-8 text-xs opacity-40 leading-relaxed">
+              관리자만이 접근 가능합니다.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'pricing' && user && (
         <div className="space-y-12">
           {pricingData.length === 0 ? (
             <div className="text-center py-20 glass rounded-[40px] border border-white/10">
@@ -2362,8 +2395,9 @@ const Admin = () => {
             </div>
           ))
         )}
-      </div>
-      ) : (
+        </div>
+      )}
+      {activeTab === 'quotes' && user && (
         <div className="space-y-8">
           {/* Filters */}
           <div className="glass p-6 rounded-3xl border border-white/10 flex flex-wrap gap-6 items-end">
@@ -2414,6 +2448,12 @@ const Admin = () => {
             >
               초기화
             </button>
+            <button 
+              onClick={exportToExcel}
+              className="bg-lime text-forest hover:bg-lime/90 px-6 py-2 rounded-xl transition-all font-bold flex items-center gap-2"
+            >
+              엑셀 다운로드
+            </button>
           </div>
 
           {/* Quotes Table */}
@@ -2422,46 +2462,75 @@ const Admin = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
-                    <th className="p-6 font-medium">문의일시</th>
-                    <th className="p-6 font-medium">신청자명</th>
-                    <th className="p-6 font-medium">연락처</th>
-                    <th className="p-6 font-medium">이메일주소</th>
-                    <th className="p-6 font-medium">선택한 골프장</th>
-                    <th className="p-6 font-medium">희망 일정</th>
-                    <th className="p-6 font-medium text-right">비용 (RM)</th>
-                    <th className="p-6 font-medium text-right">비용 (₩)</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">문의일시</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">신청자명</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">연락처</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">이메일</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">골프장</th>
+                    <th className="px-2 py-3 font-medium whitespace-nowrap">일정</th>
+                    <th className="px-2 py-3 font-medium text-right whitespace-nowrap">비용(RM)</th>
+                    <th className="px-2 py-3 font-medium text-right whitespace-nowrap">비용(₩)</th>
+                    <th className="px-2 py-3 font-medium text-center whitespace-nowrap">상태</th>
+                    <th className="px-2 py-3 font-medium text-center whitespace-nowrap">관리</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm">
+                <tbody className="text-xs">
                   {filteredQuotes.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-12 text-center opacity-40 italic">
+                      <td colSpan={10} className="p-12 text-center opacity-40 italic">
                         검색 결과가 없습니다.
                       </td>
                     </tr>
                   ) : (
                     filteredQuotes.map((quote) => (
                       <tr key={quote.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                        <td className="p-6 opacity-60">
-                          {format(new Date(quote.timestamp), 'yyyy-MM-dd HH:mm')}
+                        <td className="px-2 py-3 opacity-60 whitespace-nowrap">
+                          {format(new Date(quote.timestamp), 'yy-MM-dd HH:mm')}
                         </td>
-                        <td className="p-6 font-medium">{quote.from_name}</td>
-                        <td className="p-6 opacity-60">{quote.phone}</td>
-                        <td className="p-6 opacity-60">{quote.email}</td>
-                        <td className="p-6">
+                        <td className="px-2 py-3 font-medium whitespace-nowrap max-w-[80px] truncate" title={quote.from_name}>{quote.from_name}</td>
+                        <td className="px-2 py-3 opacity-60 whitespace-nowrap">{quote.phone}</td>
+                        <td className="px-2 py-3 opacity-60 whitespace-nowrap max-w-[100px] truncate" title={quote.email}>{quote.email}</td>
+                        <td className="px-2 py-3">
                           <button 
                             onClick={() => setSelectedQuote(quote)}
-                            className="max-w-xs truncate text-lime hover:underline text-left block w-full" 
+                            className="max-w-[120px] truncate text-lime hover:underline text-left block w-full" 
                             title="상세 내역 보기"
                           >
                             {quote.golf_courses}
                           </button>
                         </td>
-                        <td className="p-6 opacity-60">
+                        <td className="px-2 py-3 opacity-60 whitespace-nowrap max-w-[100px] truncate" title={quote.travel_period || (quote as any).schedule?.split(' (')[0] || '-'}>
                           {quote.travel_period || (quote as any).schedule?.split(' (')[0] || '-'}
                         </td>
-                        <td className="p-6 text-right font-medium">RM {quote.total_myr}</td>
-                        <td className="p-6 text-right text-lime font-medium">{quote.total_krw}</td>
+                        <td className="px-2 py-3 text-right font-medium whitespace-nowrap">{quote.total_myr}</td>
+                        <td className="px-2 py-3 text-right text-lime font-medium whitespace-nowrap">{quote.total_krw}</td>
+                        <td className="px-2 py-3 text-center whitespace-nowrap">
+                          <select
+                            value={quote.status || '접수확인'}
+                            onChange={(e) => updateQuoteStatus(quote.id, e.target.value)}
+                            className={cn(
+                              "bg-white/5 border border-white/10 rounded-lg px-1 py-1 text-[10px] outline-none transition-colors cursor-pointer",
+                              quote.status === '입금완료' ? "text-lime border-lime/30" : 
+                              quote.status === '견적확정' ? "text-blue-400 border-blue-400/30" :
+                              quote.status === '답변완료' ? "text-yellow-400 border-yellow-400/30" :
+                              "text-white/60"
+                            )}
+                          >
+                            <option value="접수확인" className="bg-forest">접수확인</option>
+                            <option value="답변완료" className="bg-forest">답변완료</option>
+                            <option value="견적확정" className="bg-forest">견적확정</option>
+                            <option value="입금완료" className="bg-forest">입금완료</option>
+                          </select>
+                        </td>
+                        <td className="px-2 py-3 text-center whitespace-nowrap">
+                          <button
+                            onClick={() => deleteQuote(quote.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors p-1.5 hover:bg-white/5 rounded-full"
+                            title="삭제"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -2934,22 +3003,24 @@ export default function App() {
   }, []);
 
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/golf" element={<Golf />} />
-            <Route path="/stay" element={<Stay />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/booking" element={<Booking />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+    <ExchangeRateProvider>
+      <Router>
+        <div className="min-h-screen flex flex-col">
+          <Navbar />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/golf" element={<Golf />} />
+              <Route path="/stay" element={<Stay />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/booking" element={<Booking />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </ExchangeRateProvider>
   );
 }
