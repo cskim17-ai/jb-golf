@@ -13,9 +13,9 @@ export const GALLERY_DATA: GalleryItem[] = [
   {
     id: 'v1',
     type: 'video',
-    title: '포레스트 시티',
-    description: '잭니클라우스 설계, 세계 100대 코스의 위용 클래식/레거시 코스 전경과 고퀄리티 드론 샷 포함',
-    url: 'https://www.youtube-nocookie.com/embed/Qg448bG_1-Y',
+    title: '조호바루 골프 숙소 위치 추천',
+    description: "조호바루는 골프장과 시내 접근성이 뛰어나 숙소를 시내에 정하면 골프와 현지 쇼핑, 맛집 탐방을 동시에 즐기기 좋습니다. 특히 그랩 이용이 편리하고 편의시설이 밀집한 시티 센터, JB 센트럴, 단가베이, 오스틴 지역을 추천하며, 조용하고 쾌적한 환경을 선호한다면 신도시 부근의 신축 레지던스도 훌륭한 선택지입니다.", 
+    url: 'https://www.youtube-nocookie.com/embed/OEg-wgP22Rk',
   },
   {
     id: 'v2',
