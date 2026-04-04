@@ -43,8 +43,26 @@
       },
       "required": ["id", "timestamp", "from_name", "email", "total_myr", "total_krw"]
     }
+    "Notice": {
+      "title": "Notice",
+      "description": "A public notice or announcement from the admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isPinned": { "type": "boolean" },
+        "author": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    }
   },
   "firestore": {
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Collection of public notices"
+    },
     "/pricing/{courseId}": {
       "schema": "CoursePricing",
       "description": "Collection of golf course pricing data"

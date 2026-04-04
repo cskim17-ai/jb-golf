@@ -119,6 +119,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: '홈', path: '/' },
+    { name: '공지사항', path: '/notices' },
     { name: '골프장 소개', path: '/golf' },
     { name: '숙소/먹거리', path: '/stay' },
     { name: '놀거리', path: '/rest' },
@@ -224,6 +225,7 @@ const Footer = () => (
       <div>
         <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">빠른 링크</h3>
         <div className="flex flex-col gap-2">
+          <Link to="/notices" className="hover:underline">공지사항</Link>
           <Link to="/golf" className="hover:underline">골프장 소개</Link>
           <Link to="/stay" className="hover:underline">숙소/먹거리</Link>
           <Link to="/rest" className="hover:underline">놀거리</Link>
@@ -1838,14 +1840,118 @@ interface QuoteRequest {
   status?: '접수확인' | '답변완료' | '견적확정' | '입금완료';
 }
 
+interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  isPinned?: boolean;
+  author?: string;
+}
+
+const NoticeList = () => {
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'notices'), orderBy('isPinned', 'desc'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Notice);
+      setNotices(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) return (
+    <div className="pt-40 pb-24 px-6 text-center">
+      <div className="w-12 h-12 border-4 border-lime/30 border-t-lime rounded-full animate-spin mx-auto mb-4" />
+      <p className="serif italic opacity-60">공지사항을 불러오는 중...</p>
+    </div>
+  );
+
+  return (
+    <div className="pt-40 pb-24 px-6 max-w-4xl mx-auto">
+      <header className="mb-12">
+        <h1 className="text-7xl serif mb-4">공지사항</h1>
+        <p className="text-xl serif italic opacity-60">야나골 골프클럽의 새로운 소식과 안내사항을 확인하세요.</p>
+      </header>
+
+      <div className="space-y-4">
+        {notices.length === 0 ? (
+          <div className="glass rounded-3xl p-12 text-center border border-white/10">
+            <p className="opacity-40">등록된 공지사항이 없습니다.</p>
+          </div>
+        ) : (
+          notices.map((notice) => (
+            <motion.div 
+              key={notice.id}
+              layout
+              className={cn(
+                "glass rounded-3xl border border-white/10 overflow-hidden transition-all",
+                selectedNotice?.id === notice.id ? "ring-2 ring-lime/50" : "hover:border-white/20"
+              )}
+            >
+              <button 
+                onClick={() => setSelectedNotice(selectedNotice?.id === notice.id ? null : notice)}
+                className="w-full text-left p-6 flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-4">
+                  {notice.isPinned && (
+                    <span className="px-3 py-1 bg-lime text-forest text-[10px] font-bold rounded-full uppercase tracking-widest">
+                      Pinned
+                    </span>
+                  )}
+                  <div>
+                    <h3 className="text-xl serif group-hover:text-lime transition-colors">{notice.title}</h3>
+                    <p className="text-xs opacity-40 mt-1">
+                      {format(new Date(notice.createdAt), 'yyyy.MM.dd')}
+                    </p>
+                  </div>
+                </div>
+                <div className={cn("transition-transform duration-300", selectedNotice?.id === notice.id ? "rotate-180" : "")}>
+                  <ChevronDown size={20} className="opacity-40" />
+                </div>
+              </button>
+              
+              <AnimatePresence>
+                {selectedNotice?.id === notice.id && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-8 pt-2 border-t border-white/5">
+                      <div className="prose prose-invert max-w-none">
+                        <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
+                          {notice.content}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Admin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'pricing' | 'quotes'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'quotes' | 'notices'>('pricing');
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [quotesData, setQuotesData] = useState<QuoteRequest[]>([]);
+  const [noticesData, setNoticesData] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
+  const [newNotice, setNewNotice] = useState({ title: '', content: '', isPinned: false });
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -1934,9 +2040,15 @@ const Admin = () => {
       setLoading(false);
     });
 
+    const unsubscribeNotices = onSnapshot(query(collection(db, 'notices'), orderBy('createdAt', 'desc')), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Notice);
+      setNoticesData(data);
+    });
+
     return () => {
       unsubscribePricing();
       unsubscribeQuotes();
+      unsubscribeNotices();
     };
   }, []);
 
@@ -2201,6 +2313,15 @@ const Admin = () => {
             >
               문의 내역
             </button>
+            <button 
+              onClick={() => setActiveTab('notices')}
+              className={cn(
+                "text-lg serif transition-all border-b-2 pb-1",
+                activeTab === 'notices' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
+              )}
+            >
+              공지사항 관리
+            </button>
           </div>
         </div>
         {activeTab === 'pricing' && user && (
@@ -2250,7 +2371,8 @@ const Admin = () => {
         <div className="flex flex-col items-center justify-center min-h-[40vh]">
           <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
             <h2 className="text-3xl serif mb-8">
-              {activeTab === 'pricing' ? '가격정보관리 로그인' : '견적요청내역 로그인'}
+              {activeTab === 'pricing' ? '가격정보관리 로그인' : 
+               activeTab === 'notices' ? '공지사항관리 로그인' : '견적요청내역 로그인'}
             </h2>
             <button 
               onClick={handleGoogleLogin}
@@ -2433,6 +2555,167 @@ const Admin = () => {
             </div>
           ))
         )}
+        </div>
+      )}
+      {activeTab === 'notices' && user && (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-4xl serif">공지사항 관리</h2>
+            <button 
+              onClick={() => {
+                setEditingNoticeId(null);
+                setNewNotice({ title: '', content: '', isPinned: false });
+              }}
+              className="bg-lime text-forest px-8 py-3 rounded-full font-bold hover:bg-lime/90 transition-all"
+            >
+              새 공지사항 작성
+            </button>
+          </div>
+
+          {/* Notice Form */}
+          <div className="glass rounded-[40px] p-8 border border-white/10">
+            <h3 className="text-xl serif mb-6">{editingNoticeId ? '공지사항 수정' : '새 공지사항 작성'}</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">제목</label>
+                <input 
+                  type="text"
+                  value={newNotice.title}
+                  onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 w-full focus:border-lime outline-none transition-all text-xl serif"
+                  placeholder="공지사항 제목을 입력하세요"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">내용</label>
+                <textarea 
+                  value={newNotice.content}
+                  onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-4 w-full focus:border-lime outline-none transition-all min-h-[300px] resize-none"
+                  placeholder="공지사항 내용을 입력하세요"
+                />
+              </div>
+              <div className="flex items-center gap-3 ml-2">
+                <input 
+                  type="checkbox"
+                  id="isPinned"
+                  checked={newNotice.isPinned}
+                  onChange={(e) => setNewNotice({ ...newNotice, isPinned: e.target.checked })}
+                  className="w-5 h-5 accent-lime"
+                />
+                <label htmlFor="isPinned" className="text-sm opacity-80 cursor-pointer">상단 고정</label>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={async () => {
+                    if (!newNotice.title || !newNotice.content) {
+                      showAlert('제목과 내용을 입력해주세요.');
+                      return;
+                    }
+                    setIsSaving(true);
+                    try {
+                      if (editingNoticeId) {
+                        await updateDoc(doc(db, 'notices', editingNoticeId), {
+                          ...newNotice,
+                          updatedAt: new Date().toISOString()
+                        });
+                        showAlert('공지사항이 수정되었습니다.');
+                      } else {
+                        await addDoc(collection(db, 'notices'), {
+                          ...newNotice,
+                          createdAt: new Date().toISOString(),
+                          author: user?.email
+                        });
+                        showAlert('공지사항이 등록되었습니다.');
+                      }
+                      setNewNotice({ title: '', content: '', isPinned: false });
+                      setEditingNoticeId(null);
+                    } catch (error) {
+                      console.error("Notice save error:", error);
+                      showAlert('저장에 실패했습니다.');
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="bg-lime text-forest px-10 py-3 rounded-full font-bold hover:bg-lime/90 transition-all disabled:opacity-50"
+                >
+                  {isSaving ? '저장 중...' : (editingNoticeId ? '수정 완료' : '등록하기')}
+                </button>
+                {editingNoticeId && (
+                  <button 
+                    onClick={() => {
+                      setEditingNoticeId(null);
+                      setNewNotice({ title: '', content: '', isPinned: false });
+                    }}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 px-10 py-3 rounded-full transition-all"
+                  >
+                    취소
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Notices List */}
+          <div className="glass rounded-[40px] border border-white/10 overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                  <th className="p-6 font-medium">상태</th>
+                  <th className="p-6 font-medium">제목</th>
+                  <th className="p-6 font-medium">작성일</th>
+                  <th className="p-6 w-32"></th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {noticesData.map((notice) => (
+                  <tr key={notice.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                    <td className="p-6">
+                      {notice.isPinned ? (
+                        <span className="px-2 py-0.5 bg-lime/20 text-lime text-[10px] font-bold rounded uppercase tracking-widest">Pinned</span>
+                      ) : (
+                        <span className="opacity-40">-</span>
+                      )}
+                    </td>
+                    <td className="p-6 font-medium">{notice.title}</td>
+                    <td className="p-6 opacity-60">{format(new Date(notice.createdAt), 'yyyy.MM.dd')}</td>
+                    <td className="p-6 text-right flex gap-4 justify-end">
+                      <button 
+                        onClick={() => {
+                          setEditingNoticeId(notice.id);
+                          setNewNotice({ title: notice.title, content: notice.content, isPinned: !!notice.isPinned });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-white/40 hover:text-lime transition-colors"
+                      >
+                        수정
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          showConfirm('정말로 이 공지사항을 삭제하시겠습니까?', async () => {
+                            try {
+                              await deleteDoc(doc(db, 'notices', notice.id));
+                              if (editingNoticeId === notice.id) {
+                                setEditingNoticeId(null);
+                                setNewNotice({ title: '', content: '', isPinned: false });
+                              }
+                            } catch (error) {
+                              console.error("Notice delete error:", error);
+                              showAlert('삭제에 실패했습니다.');
+                            }
+                          });
+                        }}
+                        className="text-white/20 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       {activeTab === 'quotes' && user && (
@@ -3048,6 +3331,7 @@ export default function App() {
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/notices" element={<NoticeList />} />
               <Route path="/golf" element={<Golf />} />
               <Route path="/stay" element={<Stay />} />
               <Route path="/rest" element={<Rest />} />

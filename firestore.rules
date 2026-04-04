@@ -28,9 +28,10 @@ service cloud.firestore {
     }
 
     // 3. 사용자 프로필: 본인 정보는 본인이 읽고 쓸 수 있어야 함
-    match /users/{userId} {
-      // 본인이거나 관리자일 때만 읽기/쓰기 허용
-      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    // 4. 공지사항: 누구나 읽기 가능, 관리자만 쓰기/수정/삭제 가능
+    match /notices/{noticeId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
