@@ -118,14 +118,14 @@ const Navbar = () => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Golf Courses', path: '/golf' },
-    { name: 'Stay/Food', path: '/stay' },
-    { name: 'Rest', path: '/rest' },
-    { name: 'Pricing', path: '/pricing' },
-    { name: 'Booking', path: '/booking' },
-    { name: 'Gallery', path: '/gallery' },
-    { name: 'Admin', path: '/admin', onClick: async () => { await signOut(auth); } },
+    { name: '홈', path: '/' },
+    { name: '골프장 소개', path: '/golf' },
+    { name: '숙소/먹거리', path: '/stay' },
+    { name: '놀거리', path: '/rest' },
+    { name: '가격표', path: '/pricing' },
+    { name: '예약하기', path: '/booking' },
+    { name: '갤러리', path: '/gallery' },
+    { name: '관리자', path: '/admin', onClick: async () => { await signOut(auth); } },
   ];
 
   return (
@@ -215,21 +215,21 @@ const Footer = () => (
         </p>
       </div>
       <div>
-        <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">Contact</h3>
+        <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">연락하기</h3>
         <p className="text-lg serif">jco119@gmail.com</p>
         <p className="text-lg serif">cskim1747@gmail.com</p>
         <p className="text-xs opacity-80 mt-2">궁금하신 사항은 위 메일로 문의해 주세요</p>
         <p className="text-sm opacity-80 mt-4">야나골 골프클럽</p>
       </div>
       <div>
-        <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">Quick Links</h3>
+        <h3 className="text-xs tracking-widest uppercase mb-6 opacity-60">빠른 링크</h3>
         <div className="flex flex-col gap-2">
-          <Link to="/golf" className="hover:underline">Golf Courses</Link>
-          <Link to="/stay" className="hover:underline">Stay/Food</Link>
-          <Link to="/rest" className="hover:underline">Rest</Link>
-          <Link to="/pricing" className="hover:underline">Pricing</Link>
-          <Link to="/booking" className="hover:underline">Booking</Link>
-          <Link to="/gallery" className="hover:underline">Gallery</Link>
+          <Link to="/golf" className="hover:underline">골프장 소개</Link>
+          <Link to="/stay" className="hover:underline">숙소/먹거리</Link>
+          <Link to="/rest" className="hover:underline">놀거리</Link>
+          <Link to="/pricing" className="hover:underline">가격표</Link>
+          <Link to="/booking" className="hover:underline">예약하기</Link>
+          <Link to="/gallery" className="hover:underline">갤러리</Link>
         </div>
       </div>
     </div>
@@ -241,6 +241,13 @@ const Footer = () => (
 );
 
 // --- Pages ---
+
+const filterLabels: Record<string, string> = {
+  'All': '전체',
+  'Premium': '프리미엄',
+  'Value': '가성비',
+  'Accessibility': '접근성'
+};
 
 const GolfCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -298,10 +305,10 @@ const GolfCarousel = () => {
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
         >
-          {/* Left Card: Premium Guide */}
+          {/* Left Card: 프리미엄 가이드 */}
           <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] px-4 py-8 border border-white/10 h-[500px] flex flex-col">
             <div className="mb-5 px-3">
-              <h3 className="text-2xl serif italic text-lime">Premium Guide</h3>
+              <h3 className="text-2xl serif italic text-lime">프리미엄 가이드</h3>
               <div className="h-px w-12 bg-lime/30 mt-2" />
             </div>
             <div className="space-y-4 flex-1 px-3">
@@ -380,7 +387,7 @@ const GolfCarousel = () => {
             {/* Bottom Tag */}
             <div className="absolute bottom-8 left-8">
               <div className="px-6 py-2 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-xs tracking-widest uppercase font-bold">
-                {course.category} Collection
+                {filterLabels[course.category]} Collection
               </div>
             </div>
           </div>
@@ -412,7 +419,7 @@ const GolfCarousel = () => {
                 {/* Course Info */}
                 <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">COURSE INFO</h3>
+                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">코스 정보</h3>
                     <Info size={12} className="text-lime opacity-80" />
                   </div>
                   <div className="flex items-center justify-center">
@@ -423,29 +430,29 @@ const GolfCarousel = () => {
                 {/* Pricing Info */}
                 <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex-1 flex flex-col justify-center">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">PRICING (MYR)</h3>
+                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">비용(링깃)</h3>
                     <Calculator size={14} className="text-lime opacity-80" />
                   </div>
                   <div className="space-y-6">
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="text-[13px] text-white/60 font-bold self-end">WEEKDAY</div>
+                      <div className="text-[13px] text-white/60 font-bold self-end">주중</div>
                       <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">AM</p>
+                        <p className="text-[11px] text-white/60 font-medium">오전</p>
                         <p className="text-lg font-bold text-white">RM {weekdayMorning}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">PM</p>
+                        <p className="text-[11px] text-white/60 font-medium">오후</p>
                         <p className="text-lg font-bold text-white">RM {weekdayAfternoon}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="text-[13px] text-white/60 font-bold self-end">WEEKEND</div>
+                      <div className="text-[13px] text-white/60 font-bold self-end">주말/공휴일</div>
                       <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">AM</p>
+                        <p className="text-[11px] text-white/60 font-medium">오전</p>
                         <p className="text-lg font-bold text-lime">RM {weekendMorning}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">PM</p>
+                        <p className="text-[11px] text-white/60 font-medium">오후</p>
                         <p className="text-lg font-bold text-lime">RM {weekendAfternoon}</p>
                       </div>
                     </div>
@@ -529,10 +536,10 @@ const Home = () => {
           
           <div className="flex flex-wrap justify-center gap-6 mb-24">
             <Link to="/booking" className="btn-primary">
-              Booking
+              예약하기
             </Link>
             <Link to="/golf" className="btn-secondary glass">
-              Golf Courses
+              골프장 소개
             </Link>
           </div>
         </motion.div>
@@ -545,6 +552,7 @@ const Home = () => {
 
 const Golf = () => {
   const [filter, setFilter] = useState<'All' | 'Premium' | 'Value' | 'Accessibility'>('All');
+
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [loading, setLoading] = useState(true);
   const exchangeRate = useExchangeRate();
@@ -611,7 +619,7 @@ const Golf = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">Golf <span className="italic">Courses</span></h1>
+        <h1 className="text-7xl serif mb-8">골프장 소개</h1>
         <div className="flex flex-wrap gap-4">
           {['All', 'Premium', 'Value', 'Accessibility'].map((f) => (
             <button 
@@ -622,7 +630,7 @@ const Golf = () => {
                 filter === f ? "active-pill" : "text-white/60"
               )}
             >
-              {f.toUpperCase()}
+              {filterLabels[f]}
             </button>
           ))}
         </div>
@@ -675,7 +683,7 @@ const Golf = () => {
                 >
                   <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                   <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
-                    {course.category}
+                    {filterLabels[course.category]}
                   </div>
                 </a>
                 <div className="flex items-center justify-between mb-4">
@@ -713,17 +721,17 @@ const Golf = () => {
               <div className="mt-auto">
                 <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
                   <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
-                    <span>Type</span>
-                    <span>Morning</span>
-                    <span>Afternoon</span>
+                    <span>구분</span>
+                    <span>오전</span>
+                    <span>오후</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-1">
-                    <span className="font-medium">Weekday</span>
+                    <span className="font-medium">주중</span>
                     <span>RM {weekdayMorning}</span>
                     <span>RM {weekdayAfternoon}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <span className="font-medium">Weekend</span>
+                    <span className="font-medium">주말/공휴일</span>
                     <span>RM {weekendMorning}</span>
                     <span>RM {weekendAfternoon}</span>
                   </div>
@@ -735,8 +743,8 @@ const Golf = () => {
                 <div className="mt-6 pt-6 border-t border-white/10">
                   <div className="flex justify-between items-end">
                     <div>
-                      <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">KRW Reference</p>
-                      <p className="text-xl serif">₩{(weekdayMorning * exchangeRate).toLocaleString()} <span className="text-sm opacity-40 italic">/ Morning</span></p>
+                      <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">원화 참고</p>
+                      <p className="text-xl serif">₩{(weekdayMorning * exchangeRate).toLocaleString()} <span className="text-sm opacity-40 italic">/ 오전</span></p>
                     </div>
                   </div>
                 </div>
@@ -841,7 +849,7 @@ const Stay = () => {
       {/* Stay Section */}
       <header className="mb-12">
         <div className="flex items-center gap-6 mb-8">
-          <h1 className="text-7xl serif">Stay <span className="italic text-lime"></span></h1>
+          <h1 className="text-7xl serif">숙소 <span className="italic text-lime"></span></h1>
           <a 
             href="https://www.google.com/maps/search/?api=1&query=KSL+City+Mall+Johor+Bahru"
             target="_blank"
@@ -891,7 +899,7 @@ const Stay = () => {
 
       {/* Food Section */}
       <header className="mb-12 pt-12 border-t border-white/10">
-        <h1 className="text-7xl serif mb-8">Food</h1>
+        <h1 className="text-7xl serif mb-8">먹거리</h1>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
           "조호바루의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
         </p>
@@ -964,15 +972,15 @@ const Pricing = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">Pricing</h1>
+        <h1 className="text-7xl serif mb-8">가격표</h1>
         <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8">
           <div className="space-y-1">
-            <p className="text-xs tracking-widest uppercase opacity-40">Current Date</p>
+            <p className="text-xs tracking-widest uppercase opacity-40">현재 날짜</p>
             <p className="text-2xl serif">{currentDate}</p>
           </div>
           <div className="text-right space-y-1">
-            <p className="text-xs tracking-widest uppercase opacity-40">Exchange Rate</p>
-            <p className="text-2xl serif">1 MYR = {exchangeRate} KRW</p>
+            <p className="text-xs tracking-widest uppercase opacity-40">환율</p>
+            <p className="text-2xl serif">1 MYR = {exchangeRate} 원</p>
           </div>
         </div>
       </header>
@@ -995,9 +1003,9 @@ const Pricing = () => {
                     <th className="py-4 font-medium">항목</th>
                     <th className="py-4 font-medium">구분</th>
                     <th className="py-4 font-medium text-right">오전 (RM)</th>
-                    <th className="py-4 font-medium text-right">오전 (KRW)</th>
+                    <th className="py-4 font-medium text-right">오전 (원)</th>
                     <th className="py-4 font-medium text-right">오후 (RM)</th>
-                    <th className="py-4 font-medium text-right">오후 (KRW)</th>
+                    <th className="py-4 font-medium text-right">오후 (원)</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -1365,13 +1373,13 @@ const Booking = () => {
       <header className="mb-12">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-7xl serif mb-4">Booking</h1>
+            <h1 className="text-7xl serif mb-4">예약하기</h1>
             <p className="text-sm opacity-40 tracking-widest uppercase">
-              {format(new Date(), 'yyyy.MM.dd')} | Exchange Rate: 1 MYR = {exchangeRate} KRW
+              {format(new Date(), 'yyyy.MM.dd')} | 환율: 1 MYR = {exchangeRate} 원
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] tracking-widest uppercase opacity-40 mb-2">Estimated Total</p>
+            <p className="text-[10px] tracking-widest uppercase opacity-40 mb-2">총 예상 비용</p>
             <p className="text-5xl serif">RM {totalMYR}</p>
             <p className="text-xl serif italic opacity-40">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
           </div>
@@ -1385,10 +1393,10 @@ const Booking = () => {
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-2xl serif flex items-center gap-3">
                 <Calculator size={24} className="opacity-40" />
-                1. Select Golf Courses
+                1. 골프장 선택
               </h2>
               <p className="text-xs tracking-widest uppercase opacity-40">
-                {selectedCourses.length} / 10 SELECTED
+                {selectedCourses.length} / 10 선택
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1404,7 +1412,7 @@ const Booking = () => {
                   )}
                 >
                   <p className="text-lg font-medium">{course.name}</p>
-                  <p className="text-[10px] opacity-40 uppercase mt-1">{course.category}</p>
+                  <p className="text-[10px] opacity-40 uppercase mt-1">{filterLabels[course.category]}</p>
                 </button>
               ))}
             </div>
@@ -1412,7 +1420,7 @@ const Booking = () => {
 
           {selectedCourses.length > 0 && (
             <section className="animate-in fade-in slide-in-from-bottom-4">
-              <h2 className="text-2xl serif mb-6">2. Configure Schedule</h2>
+              <h2 className="text-2xl serif mb-6">2. 일정 구성</h2>
               <div className="space-y-8">
                 {selectedCourses.map(id => {
                   const course = GOLF_COURSES.find(c => c.id === id);
@@ -1496,8 +1504,8 @@ const Booking = () => {
                                   onChange={(e) => updateOption(id, opt.scheduleId, 'time', e.target.value)}
                                   className="bg-transparent border-b border-white/20 py-1 text-xs outline-none"
                                 >
-                                  <option value="morning" className="bg-forest">Morning</option>
-                                  <option value="afternoon" className="bg-forest">Afternoon</option>
+                                  <option value="morning" className="bg-forest">오전</option>
+                                  <option value="afternoon" className="bg-forest">오후</option>
                                 </select>
                               </div>
 
@@ -1531,7 +1539,7 @@ const Booking = () => {
           <div ref={receiptRef} className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 flex flex-col">
             <div className="absolute top-0 left-0 w-full h-2 bg-lime shrink-0" />
             <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 shrink-0">
-              <h2 className="text-3xl serif">Receipt Summary</h2>
+              <h2 className="text-3xl serif">예상 견적서</h2>
               <span className="text-[10px] tracking-widest uppercase bg-lime text-forest px-3 py-1 rounded-full font-bold">캐디피/팁 제외</span>
             </div>
             
@@ -1562,7 +1570,7 @@ const Booking = () => {
                           <p className="text-[10px] opacity-40 uppercase tracking-widest">
                             {opt.dates?.length > 0 
                               ? opt.dates.map(d => format(d, 'MM/dd')).join(', ')
-                              : opt.day} / {opt.time}
+                              : (opt.day === 'weekday' ? '주중' : '주말/공휴일')} / {opt.time === 'morning' ? '오전' : '오후'}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1578,11 +1586,11 @@ const Booking = () => {
 
             <div className="border-t-2 border-dashed border-white/10 pt-6 space-y-4">
               <div className="flex justify-between items-center">
-                <p className="text-xs tracking-widest uppercase opacity-40">Subtotal (MYR)</p>
+                <p className="text-xs tracking-widest uppercase opacity-40">합계(링깃)</p>
                 <p className="text-xl serif">RM {totalMYR}</p>
               </div>
               <div className="flex justify-between items-center text-lime">
-                <p className="text-xs tracking-widest uppercase font-bold">Total (KRW)</p>
+                <p className="text-xs tracking-widest uppercase font-bold">총 예상 비용(원)</p>
                 <p className="text-3xl serif font-bold">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
               </div>
             </div>
@@ -2646,11 +2654,11 @@ const Admin = () => {
                   {/* Totals Section */}
                   <div className="pt-8 border-t border-white/10 space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs tracking-widest uppercase opacity-40">Subtotal (MYR)</span>
+                      <span className="text-xs tracking-widest uppercase opacity-40">합계(링깃)</span>
                       <span className="text-2xl serif text-white">RM {selectedQuote.total_myr}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs tracking-widest uppercase text-lime font-bold">Total (KRW)</span>
+                      <span className="text-xs tracking-widest uppercase text-lime font-bold">총 예상 비용(원)</span>
                       <span className="text-3xl serif text-lime font-bold">{selectedQuote.total_krw}</span>
                     </div>
                   </div>
@@ -2742,14 +2750,14 @@ const Gallery = () => {
           whileInView={{ opacity: 1, y: 0 }}
           className="text-lime font-bold tracking-[0.3em] uppercase text-xs mb-4 block"
         >
-          Visual Experience
+          눈으로 즐기는 경험
         </motion.span>
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           className="text-6xl md:text-8xl serif mb-8"
         >
-          Gallery
+          갤러리
         </motion.h1>
         <motion.p 
           initial={{ opacity: 0, y: 20 }}

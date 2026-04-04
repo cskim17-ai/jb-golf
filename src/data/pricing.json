@@ -3,8 +3,8 @@
     "id": "forest-city",
     "courseName": "포레스트 시티 (Forest City)",
     "rows": [
-      { "item": "그린피(Green Fee)", "division": "주중", "morning": 450, "afternoon": 400, "remarks": "" },
-      { "item": "그린피(Green Fee)", "division": "주말/공휴일", "morning": 650, "afternoon": 550, "remarks": "노캐디 가능" },
+      { "item": "그린피", "division": "주중", "morning": 450, "afternoon": 400, "remarks": "" },
+      { "item": "그린피", "division": "주말/공휴일", "morning": 650, "afternoon": 550, "remarks": "노캐디 가능" },
       { "item": "버기피", "division": "공통", "morning": 0, "afternoon": 0, "remarks": "그린피에 버기피 포함" },
       { "item": "캐디피", "division": "공통", "morning": 0, "afternoon": 0, "remarks": "" }
     ]
@@ -13,8 +13,8 @@
     "id": "starhill",
     "courseName": "스타힐 CC (Starhill)",
     "rows": [
-      { "item": "그린피(Green Fee)", "division": "주중", "morning": 220, "afternoon": 180, "remarks": "" },
-      { "item": "그린피(Green Fee)", "division": "주말/공휴일", "morning": 320, "afternoon": 260, "remarks": "캐디 필수" },
+      { "item": "그린피", "division": "주중", "morning": 220, "afternoon": 180, "remarks": "" },
+      { "item": "그린피", "division": "주말/공휴일", "morning": 320, "afternoon": 260, "remarks": "캐디 필수" },
       { "item": "버기피", "division": "공통", "morning": 140, "afternoon": 140, "remarks": "캐디팁 의무" },
       { "item": "캐디피", "division": "공통", "morning": 120, "afternoon": 120, "remarks": "" }
     ]
