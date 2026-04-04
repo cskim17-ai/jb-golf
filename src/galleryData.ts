@@ -7,6 +7,8 @@ export interface GalleryItem {
   thumbnail?: string;
 }
 
+const base = import.meta.env.BASE_URL;
+
 export const GALLERY_DATA: GalleryItem[] = [
   {
     id: 'v1',
@@ -88,41 +90,41 @@ export const GALLERY_DATA: GalleryItem[] = [
   {
     id: 'p1',
     type: 'photo',    
-    url: '/image/20250114_171725.jpg', // 수정됨
+    url: `${base}image/20250114_171725.jpg`,
   },
   {
     id: 'p2',
     type: 'photo',    
-    url: '/image/20250115_084441.jpg', // 수정됨
+    url: `${base}image/20250115_084441.jpg`,
   },
   {
     id: 'p3',
     type: 'photo',    
-    url: 'image/20250115_103712.jpg', // 수정됨
+    url: `${base}image/20250115_103712.jpg`,
   },
   {
     id: 'p4',
     type: 'photo',    
-    url: 'image/20250114_115818.jpg', // 수정됨
+    url: `${base}image/20250114_115818.jpg`,
   },
   {
     id: 'p5',
     type: 'photo',    
-    url: 'image/20250115_141634.jpg', // 수정됨
+    url: `${base}image/20250115_141634.jpg`,
   },
   {
     id: 'p6',
     type: 'photo',    
-    url: 'image/20250116_085020.jpg', // 수정됨
+    url: `${base}image/20250116_085020.jpg`,
   },
   {
     id: 'p7',
     type: 'photo',    
-    url: 'image/20250116_131554.jpg', // 수정됨
+    url: `${base}image/20250116_131554.jpg`,
   },
   {
     id: 'p8',
     type: 'photo',    
-    url: 'image/20250116_194604.jpg', // 수정됨
+    url: `${base}image/20250116_194604.jpg`,
   }
 ];

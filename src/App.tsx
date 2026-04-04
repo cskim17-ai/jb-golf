@@ -133,7 +133,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="text-4xl font-sans font-bold tracking-tighter flex items-center gap-4">
           <img 
-            src="logo.png" 
+            src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="Logo" 
             className="h-20 w-20 object-contain"
           />
@@ -200,7 +200,7 @@ const Footer = () => (
       <div>
         <h2 className="text-4xl font-sans font-bold italic mb-6 flex items-center gap-4">
           <img 
-            src="logo.png" 
+            src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="Logo" 
             className="h-16 w-16 object-contain"
           />
@@ -256,7 +256,16 @@ const GolfCarousel = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      const data = snapshot.docs.map(doc => {
+        const d = doc.data() as CoursePricing;
+        return {
+          ...d,
+          rows: d.rows.map(r => ({
+            ...r,
+            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+          }))
+        };
+      });
       setPricingData(data);
     });
     return () => unsubscribePricing();
@@ -559,7 +568,16 @@ const Golf = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      const data = snapshot.docs.map(doc => {
+        const d = doc.data() as CoursePricing;
+        return {
+          ...d,
+          rows: d.rows.map(r => ({
+            ...r,
+            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+          }))
+        };
+      });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -758,9 +776,9 @@ const Golf = () => {
 };
 
 const STAY_CATEGORIES = [
-  { id: '4', label: '4 PERSONS (2BR)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=4" },
-  { id: '6', label: '6 PERSONS (3BR)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=6" },
-  { id: '8', label: '8 PERSONS (4BR/PENT)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=8" },
+  { id: '4', label: '4인(룸2)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=4" },
+  { id: '6', label: '6인(룸3)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=6" },
+  { id: '8', label: '8인(룸4)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=8" },
 ];
 
 const FoodCard = ({ item }: { item: FoodItem }) => (
@@ -949,7 +967,16 @@ const Pricing = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      const data = snapshot.docs.map(doc => {
+        const d = doc.data() as CoursePricing;
+        return {
+          ...d,
+          rows: d.rows.map(r => ({
+            ...r,
+            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+          }))
+        };
+      });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -3015,7 +3042,7 @@ export default function App() {
 
   return (
     <ExchangeRateProvider>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL}>
         <div className="min-h-screen flex flex-col">
           <Navbar />
           <main className="flex-grow">
