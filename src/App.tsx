@@ -1855,10 +1855,22 @@ const NoticeList = () => {
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'notices'), orderBy('isPinned', 'desc'), orderBy('createdAt', 'desc'));
+    // 복합 색인 에러를 피하기 위해 쿼리에서는 정렬을 제거하고 클라이언트에서 정렬합니다.
+    const q = query(collection(db, 'notices'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Notice);
+      
+      // 클라이언트 측 정렬: 1. 고정 여부(isPinned) 내림차순, 2. 작성일(createdAt) 내림차순
+      data.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
       setNotices(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("Notice fetch error:", error);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -2040,9 +2052,19 @@ const Admin = () => {
       setLoading(false);
     });
 
-    const unsubscribeNotices = onSnapshot(query(collection(db, 'notices'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubscribeNotices = onSnapshot(collection(db, 'notices'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Notice);
+      
+      // 클라이언트 측 정렬: 1. 고정 여부(isPinned) 내림차순, 2. 작성일(createdAt) 내림차순
+      data.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
       setNoticesData(data);
+    }, (error) => {
+      console.error("Admin notices fetch error:", error);
     });
 
     return () => {
