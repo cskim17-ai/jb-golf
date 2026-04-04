@@ -37,6 +37,7 @@ import html2canvas from 'html2canvas';
 import { GOLF_COURSES, STAY_UNITS, KSL_LOCATION, type StayUnit } from './constants';
 import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
+import { Rest } from './Rest';
 
 enum OperationType {
   CREATE = 'create',
@@ -120,6 +121,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Golf Courses', path: '/golf' },
     { name: 'Stay/Food', path: '/stay' },
+    { name: 'Rest', path: '/rest' },
     { name: 'Pricing', path: '/pricing' },
     { name: 'Booking', path: '/booking' },
     { name: 'Gallery', path: '/gallery' },
@@ -224,6 +226,7 @@ const Footer = () => (
         <div className="flex flex-col gap-2">
           <Link to="/golf" className="hover:underline">Golf Courses</Link>
           <Link to="/stay" className="hover:underline">Stay/Food</Link>
+          <Link to="/rest" className="hover:underline">Rest</Link>
           <Link to="/pricing" className="hover:underline">Pricing</Link>
           <Link to="/booking" className="hover:underline">Booking</Link>
           <Link to="/gallery" className="hover:underline">Gallery</Link>
@@ -3012,6 +3015,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/golf" element={<Golf />} />
               <Route path="/stay" element={<Stay />} />
+              <Route path="/rest" element={<Rest />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/booking" element={<Booking />} />
               <Route path="/gallery" element={<Gallery />} />
