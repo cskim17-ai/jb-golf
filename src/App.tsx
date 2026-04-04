@@ -519,7 +519,7 @@ const Home = () => {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&q=80&w=2000" 
+          src="https://picsum.photos/seed/golf-hero/1920/1080" 
           alt="Golf Course" 
           className="w-full h-full object-cover opacity-60"
           referrerPolicy="no-referrer"

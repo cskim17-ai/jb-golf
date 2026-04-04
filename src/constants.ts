@@ -52,7 +52,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '3인 이상 예약 시 조식 포함',
     websiteUrl: 'https://fcgolfresort.com/',
-    image: 'https://fcgolfresort.com/wp-content/uploads/elementor/thumbs/legecy-r5cqm5mxdou51u46d51gmpsgsc0a56y5sq9pm63n7k.jpg',
+    image: 'https://picsum.photos/seed/forest/800/600',
     location: { lat: 1.345, lng: 103.523 },
     address: 'Jalan Forest City 1, Forest City, 81550 Gelang Patah, Johor',
     fullDescription: [
@@ -77,7 +77,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '주중 2인 플레이 가능',
     websiteUrl: 'https://www.tpgr.com/golf',
-    image: 'https://d1yei2z3i6k35z.cloudfront.net/12581801/68308d5fa7b10_TPGRGolf1.jpg',
+    image: 'https://picsum.photos/seed/tanjung/800/600',
     location: { lat: 1.478, lng: 103.912 },
     address: 'Jalan Tanjong Puteri 1, Tanjong Puteri Resort, 81700 Pasir Gudang, Johor',
     fullDescription: [
@@ -102,7 +102,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '비수기 특별 할인 진행 중',
     websiteUrl: 'https://hhgcc.com.my/',
-    image: 'https://hhgcc.com.my/wp-content/uploads/2022/02/img1-1-min.jpg',
+    image: 'https://picsum.photos/seed/horizon/800/600',
     location: { lat: 1.465, lng: 103.654 },
     address: 'No. 1, Jalan Eka, Horizon Hills, 79100 Iskandar Puteri, Johor',
     fullDescription: [
@@ -127,7 +127,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '나이트 골프 패키지 운영',
     websiteUrl: 'https://www.ponderosagolf.com/services/cid/9479/',
-    image: 'https://cdn1.npcdn.net/images/1768834893qzzTxH6446d860dbbfe540e9e2cbab5f98f1e3.webp?md5id=2791cbf7a6b8b8c08804168ddcf1c172&new_width=1600&new_height=1600&size=max&w=1773902801&from=png&type=12&off_wm=1',
+    image: 'https://picsum.photos/seed/ponderosa/800/600',
     location: { lat: 1.492, lng: 103.778 },
     address: 'No. 3, Jalan Ponderosa 1, Taman Ponderosa, 81100 Johor Bahru, Johor',
     fullDescription: [
@@ -152,7 +152,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '인근 마사지 샵 연계 할인',
     websiteUrl: 'https://blog.naver.com/108hole/221267537558',
-    image: 'https://www.hotelscombined.co.kr/himg/ad/8e/d0/ostrovok-2677777-2263c0-641399.jpg',
+    image: 'https://picsum.photos/seed/austin/800/600',
     location: { lat: 1.554, lng: 103.782 },
     address: 'No. 2, Jalan Mutiara Emas 8, Taman Mount Austin, 81100 Johor Bahru, Johor',
     fullDescription: [
@@ -177,7 +177,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '가성비 최고의 선택',
     websiteUrl: 'https://m.blog.naver.com/iltagolf/222980821984',
-    image: 'https://mblogthumb-phinf.pstatic.net/20141209_32/ii202ii_1418083090170l9u5n_JPEG/%B8%BB%B7%B9%C0%CC%BD%C3%BE%C6_%C1%B6%C8%A3%B9%D9%B7%E7_%B0%F1%C7%C1_%BD%BA%C5%B8%C8%FA%B0%F1%C7%C1%C5%AC%B7%B4_%284%29.jpg?type=w420',
+    image: 'https://picsum.photos/seed/starhill/800/600',
     location: { lat: 1.567, lng: 103.712 },
     address: 'Jalan Starhill, 81450 Kempas, Johor',
     fullDescription: [
@@ -202,7 +202,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '초보자 연습용 추천',
     websiteUrl: 'https://daiman18golf.com/',
-    image: 'https://club.tigergds.com/Image?FileName=e3958823f87d4590ab7f797f24d4bee4-1',
+    image: 'https://picsum.photos/seed/daiman/800/600',
     location: { lat: 1.534, lng: 103.812 },
     address: 'Jalan Ros Merah 1/1, Taman Johor Jaya, 81100 Johor Bahru, Johor',
     fullDescription: [
@@ -227,7 +227,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '9홀 가벼운 라운딩 최적',
     websiteUrl: 'https://siwonsiwon.tistory.com/131',
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTbtVtZhPm3lz1BDlzfhKjRekUn8iT-254IcQ&s',
+    image: 'https://picsum.photos/seed/impian/800/600',
     location: { lat: 1.545, lng: 103.689 },
     address: 'Jalan Impian Emas 1, Taman Impian Emas, 81300 Skudai, Johor',
     fullDescription: [
@@ -252,7 +252,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '도심 속 접근성 우수',
     websiteUrl: 'https://www.facebook.com/permasjayagolf?mibextid=ZbWKwL',
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGoChn8idjdGUDitLT8IVfjK3Tip5yw1hxOA&s',
+    image: 'https://picsum.photos/seed/permas/800/600',
     location: { lat: 1.498, lng: 103.823 },
     address: 'Jalan Permas 9/10, Bandar Baru Permas Jaya, 81750 Masai, Johor',
     fullDescription: [
@@ -277,7 +277,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '팜 트리 숲의 아름다운 전경',
     websiteUrl: 'https://www.palmvilla.com.my/Home/',
-    image: 'https://www.palmvilla.com.my/data/images/item/img_55_IMG_7509.jpg',
+    image: 'https://picsum.photos/seed/palmvilla/800/600',
     location: { lat: 1.634, lng: 103.645 },
     address: 'PTD 44500, Jalan Indah Utama, Bandar Putra, 81000 Kulai, Johor',
     fullDescription: [
@@ -302,7 +302,7 @@ export const GOLF_COURSES: GolfCourse[] = [
     },
     promotion: '강변 코스의 시원한 바람',
     websiteUrl: 'https://www.senibonggolfclub.com.my/',
-    image: 'https://www.senibonggolfclub.com.my/img/pages/home/banner/xxl.webp',
+    image: 'https://picsum.photos/seed/senibong/800/600',
     location: { lat: 1.485, lng: 103.845 },
     address: 'Jalan Persiaran Senibong, 81750 Masai, Johor',
     fullDescription: [

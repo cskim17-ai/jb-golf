@@ -36,7 +36,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '주요 특징', value: '해산물 구이 전문, No Pork No Lard, 로컬 푸드코트 형태' },
       { label: '연락처', value: '013-775 4488 / 013-721 4121' }
     ],
-    image: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjfO0Dy7qti8IJKK8voPivONzGVqRZQLiIeseYouHcw8msQAQpPpWuxwumNR5vJw_Ybo5JP8dgQPdW9RCZit5Zm1eWJbO_kW8vXAeD7aDVhzlrYEF3HmCj2wGtlWJbXSeoI_vPJ3p8jQ3k/s1600/1IMG_20171127_215904.jpg',
+    image: 'https://picsum.photos/seed/ayong/800/600',
     category: 'Nearby'
   },
   {
@@ -61,7 +61,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '권장 소요시간', value: '약 1 ~ 2시간' },
       { label: '주변 명소', value: '조호바루 구 중국 사원, 시티 스퀘어 몰, 탄히옥 네 거리' }
     ],
-    image: 'https://mblogthumb-phinf.pstatic.net/MjAyMzAxMjVfNDYg/MDAxNjc0NjIwOTM4NDc0.1jN5fg_T6xK4s8weQWKlxcEuj1pzTho-0l6V07vd6e0g.EEPgd33HO0xdKg-huc_CMlKHWMKRANMo30ySChT0qgwg.JPEG.lotto0513/KakaoTalk_20230125_132311930_11.jpg?type=w800',
+    image: 'https://picsum.photos/seed/market/800/600',
     category: 'Market'
   },
   {
@@ -80,7 +80,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '7, Jalan Wong Ah Fook, Bandar Johor Bahru (시티스퀘어 인근)' },
       { label: '운영시간', value: '08:00 ~ 16:00' }
     ],
-    image: 'https://eatbook.sg/wp-content/uploads/2024/05/kam-long-ah-zai-storefront.jpg',
+    image: 'https://picsum.photos/seed/curry/800/600',
     category: 'LocalTop10'
   },
   {
@@ -100,7 +100,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '1, Kampung Orang Asli, Telok Jawa, Masai (시내에서 차로 20분)' },
       { label: '운영시간', value: '11:30 ~ 23:30' }
     ],
-    image: 'https://i.ytimg.com/vi/G5sdAZO-BtY/maxresdefault.jpg',
+    image: 'https://picsum.photos/seed/seafood/800/600',
     category: 'LocalTop10'
   },
   {
@@ -119,7 +119,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '131, Jalan Trus, Bandar Johor Bahru' },
       { label: '운영시간', value: '08:30 ~ 18:00' }
     ],
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReQc-l-DEedw5nehHcUZbN_6V7r3iWNyKviw&s',
+    image: 'https://picsum.photos/seed/kopitiam/800/600',
     category: 'LocalTop10'
   },
   {
@@ -138,7 +138,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '36, Jalan Dedap 13, Taman Johor Jaya' },
       { label: '운영시간', value: '11:00 ~ 22:00' }
     ],
-    image: 'https://s3-media0.fl.yelpcdn.com/bphoto/txpft1UtnMuJBfrWtLKAFA/258s.jpg',
+    image: 'https://picsum.photos/seed/steamfish/800/600',
     category: 'LocalTop10'
   },
   {
@@ -157,7 +157,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '2, Jalan SUTERA 3, Taman Sutera Utama' },
       { label: '운영시간', value: '11:00 ~ 22:30' }
     ],
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3bzumjbeabZ2CXPB-f0KZeW47webk4LlrEg&s',
+    image: 'https://picsum.photos/seed/pekin/800/600',
     category: 'LocalTop10'
   },
   {
@@ -176,7 +176,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: 'Jalan Biru, Taman Pelangi' },
       { label: '운영시간', value: '16:30 ~ 01:00 (새벽까지 운영)' }
     ],
-    image: 'https://www.lemon8-app.com/seo/image?item_id=7181926356739981825&index=0&sign=934523baa0f1b66696d864d19c1f9a7d',
+    image: 'https://picsum.photos/seed/noodle/800/600',
     category: 'LocalTop10'
   },
   {
@@ -194,7 +194,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '77, Jalan Beringin, Taman Melodies' },
       { label: '운영시간', value: '10:00 ~ 18:00' }
     ],
-    image: 'https://eatbook.sg/wp-content/uploads/2024/04/Re-Patisserie-jb-feature-image.jpg',
+    image: 'https://picsum.photos/seed/pastry/800/600',
     category: 'LocalTop10'
   },
   {
@@ -213,7 +213,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '28, Jalan Segget, Bandar Johor Bahru' },
       { label: '운영시간', value: '08:00 ~ 18:00' }
     ],
-    image: 'https://mblogthumb-phinf.pstatic.net/MjAyMzA3MTdfMjUz/MDAxNjg5NTg3NTk2OTU1.8FJ6xRX8p97n53hMb_hgil_sRBK8gX-zLiJkG3sQj1og.n42vHTYHn588cSVVwmkmw8afOYGDOxn6rIzW7eu50AIg.JPEG.unafriend/20230717%EF%BC%BF101711.jpg?type=w800',
+    image: 'https://picsum.photos/seed/duck/800/600',
     category: 'LocalTop10'
   },
   {
@@ -231,7 +231,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '1, Jalan Layang 1, Taman Perling' },
       { label: '운영시간', value: '08:00 ~ 15:30' }
     ],
-    image: 'https://res.klook.com/images/fl_lossy.progressive,q_65/c_fill,w_857,h_482/w_52,x_9,y_9,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jbro9pijfdy1cfwnibok/%EC%A1%B0%ED%98%B8%EB%B0%94%EB%A3%A8%EC%BA%84%EB%A1%B1%EC%95%84%EC%9E%90%EC%9D%B4%EC%BB%A4%EB%A6%AC%ED%94%BC%EC%8B%9C%ED%97%A4%EB%93%9C.jpg',
+    image: 'https://picsum.photos/seed/curryfish/800/600',
     category: 'LocalTop10'
   },
   {
@@ -250,7 +250,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '82, Jalan Trus, Bandar Johor Bahru' },
       { label: '운영시간', value: '10:00 ~ 18:00' }
     ],
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5WjsTxdpf_mjji8mGFtr1uD17R27jg0FIQg&s',
+    image: 'https://picsum.photos/seed/cafe/800/600',
     category: 'LocalTop10'
   },
   {
@@ -268,7 +268,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '43, Jalan Serampang, Taman Sri Tebrau (KSL 정문 맞은편)' },
       { label: '운영시간', value: '09:00 ~ 20:00' }
     ],
-    image: 'https://mblogthumb-phinf.pstatic.net/MjAxODA0MDRfMTk4/MDAxNTIyODEzODMyMjc5.AV-KFcl_EXy6VWniDlYSiK7u_L8eTnZnkFfJ6TYI4dwg.7Z1oM5GiQNYpxqKd7zu7mklLLZQVMGYpn3MPEDgPamMg.JPEG.mary3528/20180330_183741.jpg?type=w800',
+    image: 'https://picsum.photos/seed/bakkutteh/800/600',
     category: 'KSL'
   },
   {
@@ -287,7 +287,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: 'KSL City Mall, LG-33 (지하 1층)' },
       { label: '운영시간', value: '10:00 ~ 22:00' }
     ],
-    image: 'https://media-cdn.tripadvisor.com/media/photo-s/0b/db/2b/23/fb-img-1465816717435.jpg',
+    image: 'https://picsum.photos/seed/roast/800/600',
     category: 'KSL'
   },
   {
@@ -305,7 +305,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '3 & 5, Jalan Sutera 1, Taman Sentosa' },
       { label: '운영시간', value: '11:00 ~ 21:00' }
     ],
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTlvRSFFofWQaGWqGmGZLano7zwSKb0CDskBQ&s',
+    image: 'https://picsum.photos/seed/chicken/800/600',
     category: 'KSL'
   },
   {
@@ -323,7 +323,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '260, Jalan Dato Sulaiman (Holiday Villa 1층)' },
       { label: '운영시간', value: '11:00 ~ 23:00' }
     ],
-    image: 'https://www.kfry.my/wp-content/uploads/2025/11/Book-A-Table.jpg?1774864021',
+    image: 'https://picsum.photos/seed/korean/800/600',
     category: 'KSL'
   },
   {
@@ -341,7 +341,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: 'Jalan Segget 근처 또는 Taman Melodies 분점' },
       { label: '운영시간', value: '08:00 ~ 14:30' }
     ],
-    image: 'https://static.wixstatic.com/media/ee8e9b_b33831104a994d59abdd648df6b95172~mv2.jpeg/v1/fill/w_568,h_408,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/ee8e9b_b33831104a994d59abdd648df6b95172~mv2.jpeg',
+    image: 'https://picsum.photos/seed/soup/800/600',
     category: 'KSL'
   },
   {
@@ -359,7 +359,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: 'KSL City Mall, LG-62 (지하 1층)' },
       { label: '운영시간', value: '10:00 ~ 22:00' }
     ],
-    image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0e/0c/f5/d6/photo0jpg.jpg',
+    image: 'https://picsum.photos/seed/laksa/800/600',
     category: 'KSL'
   },
   {
@@ -377,7 +377,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '153, Jalan Harimau, Taman Century' },
       { label: '운영시간', value: '09:00 ~ 21:00 (목요일 휴무)' }
     ],
-    image: 'https://static.wixstatic.com/media/ee8e9b_e4ee6aa4b5bf44ce98462a1e9b1cc924~mv2.jpeg/v1/fill/w_750,h_563,al_c,q_85/ee8e9b_e4ee6aa4b5bf44ce98462a1e9b1cc924~mv2.jpeg',
+    image: 'https://picsum.photos/seed/wanton/800/600',
     category: 'KSL'
   },
   {
@@ -395,7 +395,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '9, Jalan Maju, Taman Maju Jaya' },
       { label: '운영시간', value: '06:30 ~ 14:00 (화요일 휴무)' }
     ],
-    image: 'https://eatbook.sg/wp-content/uploads/2024/11/restoran-kak-kak-storefront.jpg',
+    image: 'https://picsum.photos/seed/dimsum/800/600',
     category: 'KSL'
   },
   {
@@ -413,7 +413,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: 'Jalan Musang Bulan, Taman Abad' },
       { label: '운영시간', value: '18:00 ~ 밤 늦게까지' }
     ],
-    image: 'https://www.lemon8-app.com/seo/image?item_id=7297133608425357826&index=8&sign=5b823d294e3609d30a4c37bed9256e29',
+    image: 'https://picsum.photos/seed/foodcourt/800/600',
     category: 'KSL'
   },
   {
@@ -431,7 +431,7 @@ export const FOOD_DATA: FoodItem[] = [
       { label: '위치', value: '28, Jalan Taman Melodies' },
       { label: '운영시간', value: '09:00 ~ 17:00 (목요일 휴무)' }
     ],
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkCA_02Lf9b1o0vywTYUk06DCryaCUMbfcZw&s',
+    image: 'https://picsum.photos/seed/coffee/800/600',
     category: 'KSL'
   }
 ];
