@@ -33,5 +33,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 5. 골퍼 명언: 누구나 읽기 가능, 관리자만 쓰기/수정/삭제 가능
+    match /golferQuotes/{quoteId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

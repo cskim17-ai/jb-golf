@@ -39,6 +39,7 @@ import { GOLF_COURSES, STAY_UNITS, KSL_LOCATION, type StayUnit } from './constan
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
 import { Rest } from './Rest';
 import WeatherWidget from './WeatherWidget';
+import GolferQuotesWidget from './GolferQuotesWidget';
 import TravelGuide from './TravelGuide';
 
 enum OperationType {
@@ -801,6 +802,7 @@ const Stay = () => {
         </div>
       </header>
 
+      <GolferQuotesWidget />
       <WeatherWidget />
 
       <div className="glass p-8 rounded-[32px] border border-white/10 mb-16">

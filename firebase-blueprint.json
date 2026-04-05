@@ -59,6 +59,23 @@
         "author": { "type": "string" }
       },
       "required": ["id", "title", "content", "createdAt"]
+    },
+    "GolferQuote": {
+      "title": "Golfer Quote",
+      "description": "A quote and stats from a legendary golfer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nationality": { "type": "string" },
+        "birthYear": { "type": "string" },
+        "gender": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "quote": { "type": "string" },
+        "source": { "type": "string" },
+        "stats": { "type": "string" }
+      },
+      "required": ["id", "name", "quote"]
     }
   },
   "firestore": {
@@ -73,6 +90,10 @@
     "/quotes/{quoteId}": {
       "schema": "QuoteRequest",
       "description": "Collection of customer quote requests"
+    },
+    "/golferQuotes/{quoteId}": {
+      "schema": "GolferQuote",
+      "description": "Collection of legendary golfer quotes"
     }
   }
 }
