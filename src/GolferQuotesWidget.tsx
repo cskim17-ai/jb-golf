@@ -207,12 +207,12 @@ const GolferQuotesWidget = () => {
       </button>
 
       <div className="w-full">
-        <div className="bg-[#2a4d25] rounded-[32px] p-8 md:p-10 shadow-xl border border-white/10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            <h3 className="text-2xl font-bold flex items-center gap-3 text-white">
+        <div className="glass p-8 rounded-[32px] border border-white/10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <h3 className="text-2xl font-bold flex items-center gap-3">
               <Flag className="text-lime" /> 골프 명언으로 배우는 인생 철학
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-right">
               <input 
                 type="checkbox" 
                 id="koreanFilter" 
@@ -220,13 +220,13 @@ const GolferQuotesWidget = () => {
                 onChange={(e) => setShowOnlyKorean(e.target.checked)}
                 className="w-4 h-4 accent-lime cursor-pointer rounded border-white/30 bg-white/10"
               />
-              <label htmlFor="koreanFilter" className="text-sm text-white/80 cursor-pointer select-none">
+              <label htmlFor="koreanFilter" className="text-sm opacity-60 cursor-pointer select-none">
                 대한민국 골퍼만 보기
               </label>
             </div>
           </div>
           
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 min-h-[250px] flex flex-col justify-center">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 min-h-[250px] flex flex-col justify-center">
             {filteredQuotes.length === 0 ? (
               <div className="text-center text-white/60 py-12">
                 해당하는 명언이 없습니다.
@@ -234,29 +234,29 @@ const GolferQuotesWidget = () => {
             ) : (
               <>
                 {/* Top Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                  <h3 className="text-2xl md:text-3xl font-bold text-lime flex items-center gap-3">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                  <h4 className="text-xl font-bold text-lime flex items-center gap-2">
                     {currentQuote.name}
                     {currentQuote.photoUrl && (
                       <a 
                         href={currentQuote.photoUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="w-8 h-8 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                        className="w-6 h-6 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                         title="사진 검색"
                       >
-                        <ExternalLink size={16} className="text-lime" />
+                        <ExternalLink size={14} className="text-lime" />
                       </a>
                     )}
-                  </h3>
-                  <p className="text-sm md:text-base text-white">
+                  </h4>
+                  <p className="text-sm font-bold opacity-80">
                     {currentQuote.nationality} / {currentQuote.birthYear} / {currentQuote.gender}
                   </p>
                 </div>
 
                 {/* Quote Section */}
-                <div className="mb-12">
-                  <p className="text-2xl md:text-4xl font-bold text-[#FFD700] leading-snug">
+                <div className="mb-10">
+                  <p className="text-3xl font-bold text-[#FFD700] leading-snug">
                     {currentQuote.quote.split(/(?=\()/).map((line, i) => (
                       <span key={i} className="block mt-2 first:mt-0">{line.trim()}</span>
                     ))}
@@ -264,12 +264,12 @@ const GolferQuotesWidget = () => {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-sm md:text-base text-white mt-auto">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-sm font-bold opacity-80 mt-auto">
                   <p>
-                    <span className="font-bold">통산 성적:</span> {currentQuote.stats}
+                    통산 성적: {currentQuote.stats}
                   </p>
                   <p>
-                    <span className="font-bold">명언 출처:</span> {currentQuote.source}
+                    명언 출처: {currentQuote.source}
                   </p>
                 </div>
               </>

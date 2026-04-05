@@ -521,17 +521,6 @@ const GolfCarousel = () => {
 const Home = () => {
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Background Image with Overlay */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://picsum.photos/seed/golf-hero/1920/1080" 
-          alt="Golf Course" 
-          className="w-full h-full object-cover opacity-60"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-forest/40 via-forest/60 to-forest" />
-      </div>
-
       {/* Hero Content */}
       <section className="relative z-10 pt-48 pb-20 px-6 flex flex-col items-center text-center">
         <motion.div
@@ -3562,10 +3551,21 @@ export default function App() {
   return (
     <ExchangeRateProvider>
       <Router basename={import.meta.env.BASE_URL}>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col relative">
+          {/* Global Background Image with Overlay */}
+          <div className="fixed inset-0 z-[-1]">
+            <img 
+              src="https://picsum.photos/seed/golf-hero/1920/1080" 
+              alt="Golf Course Background" 
+              className="w-full h-full object-cover opacity-60"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-forest/40 via-forest/60 to-forest" />
+          </div>
+
           <NoticePopup />
           <Navbar />
-          <main className="flex-grow">
+          <main className="flex-grow relative z-10">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/notices" element={<NoticeList />} />
