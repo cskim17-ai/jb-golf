@@ -8,7 +8,7 @@ import {
   Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight,
   CheckCircle2, AlertCircle, Send, Search,
-  Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon
+  Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon, Home as HomeIcon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -36,9 +36,10 @@ import * as XLSX from 'xlsx';
 
 import html2canvas from 'html2canvas';
 import { GOLF_COURSES, STAY_UNITS, KSL_LOCATION, type StayUnit } from './constants';
-import { FOOD_DATA, type FoodItem } from './foodData';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
 import { Rest } from './Rest';
+import WeatherWidget from './WeatherWidget';
+import TravelGuide from './TravelGuide';
 
 enum OperationType {
   CREATE = 'create',
@@ -122,8 +123,8 @@ const Navbar = () => {
     { name: '홈', path: '/' },
     { name: '공지사항', path: '/notices' },
     { name: '골프장 소개', path: '/golf' },
-    { name: '숙소/먹거리', path: '/stay' },
-    { name: '놀거리', path: '/rest' },
+    { name: '알거리', path: '/stay' },
+    { name: '휴식거리', path: '/rest' },
     { name: '가격표', path: '/pricing' },
     { name: '예약하기', path: '/booking' },
     { name: '갤러리', path: '/gallery' },
@@ -228,8 +229,8 @@ const Footer = () => (
         <div className="flex flex-col gap-2">
           <Link to="/notices" className="hover:underline">공지사항</Link>
           <Link to="/golf" className="hover:underline">골프장 소개</Link>
-          <Link to="/stay" className="hover:underline">숙소/먹거리</Link>
-          <Link to="/rest" className="hover:underline">놀거리</Link>
+          <Link to="/stay" className="hover:underline">알거리</Link>
+          <Link to="/rest" className="hover:underline">휴식거리</Link>
           <Link to="/pricing" className="hover:underline">가격표</Link>
           <Link to="/booking" className="hover:underline">예약하기</Link>
           <Link to="/gallery" className="hover:underline">갤러리</Link>
@@ -784,84 +785,10 @@ const STAY_CATEGORIES = [
   { id: '8', label: '8인(룸4)', url: "https://www.airbnb.com/s/KSL-D'Esplanade-Residence/homes?adults=8" },
 ];
 
-const FoodCard = ({ item }: { item: FoodItem }) => (
-  <div className="glass rounded-[40px] overflow-hidden border border-white/10 flex flex-col h-full">
-    <div className="aspect-[16/9] overflow-hidden relative">
-      <img 
-        src={item.image} 
-        alt={item.name} 
-        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-        referrerPolicy="no-referrer"
-      />
-      <div className="absolute top-4 left-4 px-4 py-1 bg-lime text-forest rounded-full text-[10px] font-bold uppercase tracking-widest">
-        {item.category}
-      </div>
-    </div>
-    <div className="p-8 flex-1 flex flex-col">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-2xl serif">{item.name}</h3>
-          <a 
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ' ' + (item.quickInfo.find(info => info.label === '위치' || info.label === '주소')?.value || 'Johor Bahru'))}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
-            title="Google Maps"
-          >
-            <MapIcon size={18} />
-          </a>
-        </div>
-        {item.tagline && <p className="text-sm italic text-lime opacity-80 mb-4">{item.tagline}</p>}
-        <p className="text-sm opacity-70 leading-relaxed">{item.description}</p>
-      </div>
 
-      <div className="space-y-6 flex-1">
-        <div>
-          <h4 className="text-xs uppercase tracking-widest opacity-40 mb-3 flex items-center gap-2">
-            <Star size={12} className="text-lime" /> Signature Dishes
-          </h4>
-          <ul className="space-y-2">
-            {item.signatureDishes.map((dish, i) => (
-              <li key={i} className="text-sm opacity-80 flex gap-2">
-                <span className="text-lime">•</span> {dish}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="text-xs uppercase tracking-widest opacity-40 mb-3 flex items-center gap-2">
-            <Info size={12} className="text-lime" /> Visitor Tips
-          </h4>
-          <ul className="space-y-2">
-            {item.visitorTips.map((tip, i) => (
-              <li key={i} className="text-sm opacity-80 flex gap-2 italic">
-                <span className="text-lime">→</span> {tip}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-1 gap-3">
-        {item.quickInfo.map((info, i) => (
-          <div key={i} className="flex justify-between text-[11px]">
-            <span className="opacity-40 uppercase tracking-wider">{info.label}</span>
-            <span className="text-right opacity-80">{info.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
 
 const Stay = () => {
   const [activeStayCat, setActiveStayCat] = useState('4');
-  const [activeCategory, setActiveCategory] = useState<'All' | 'LocalTop10' | 'KSL' | 'Nearby' | 'Market'>('All');
-  
-  const filteredFood = FOOD_DATA.filter(item => 
-    activeCategory === 'All' ? true : item.category === activeCategory
-  );
 
   const activeStay = STAY_CATEGORIES.find(c => c.id === activeStayCat);
 
@@ -870,94 +797,53 @@ const Stay = () => {
       {/* Stay Section */}
       <header className="mb-12">
         <div className="flex items-center gap-6 mb-8">
-          <h1 className="text-4xl md:text-7xl font-bold">숙소 <span className="italic text-lime"></span></h1>
+          <h1 className="text-4xl md:text-7xl font-bold">알거리 <span className="italic text-lime"></span></h1>
+        </div>
+      </header>
+
+      <WeatherWidget />
+
+      <div className="glass p-8 rounded-[32px] border border-white/10 mb-16">
+        <div className="flex items-center gap-4 mb-4">
+          <h3 className="text-2xl font-bold flex items-center gap-3 text-white">
+            <HomeIcon className="text-lime" /> 숙소 정보(에어비앤비)
+          </h3>
           <a 
             href="https://www.google.com/maps/search/?api=1&query=KSL+City+Mall+Johor+Bahru"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-12 h-12 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform mt-2"
+            className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
             title="Google Maps"
           >
-            <MapIcon size={24} />
+            <MapIcon size={20} />
           </a>
         </div>
-        <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
+        <p className="text-xl serif italic opacity-80 mb-8 max-w-2xl">
           "KSL 몰과 연결되어 라운딩 후 쇼핑·마사지·식사가 한 번에 가능! Residence R9 홈스테이 추천 리스트"
         </p>
         
-        <div className="flex flex-wrap gap-4 mb-12">
-          {STAY_CATEGORIES.map((cat) => (
-            <button 
-              key={cat.id}
-              onClick={() => setActiveStayCat(cat.id)}
-              className={cn(
-                "pill-nav",
-                activeStayCat === cat.id ? "active-pill" : "text-white/60"
-              )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {STAY_CATEGORIES.map((stay) => (
+            <a 
+              key={stay.id}
+              href={stay.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-lime/50 transition-all group flex flex-col"
             >
-              {cat.label}
-            </button>
+              <h4 className="text-2xl font-bold mb-4 text-lime">{stay.label}</h4>
+              <p className="text-sm opacity-80 mb-8 flex-grow leading-relaxed">
+                에어비앤비에서 현재 예약 가능한 {stay.label} 숙소를 실시간으로 확인하세요.
+              </p>
+              <div className="inline-block px-6 py-3 bg-white/10 rounded-full font-bold text-center group-hover:bg-lime group-hover:text-forest transition-all self-start">
+                숙소 보기
+              </div>
+            </a>
           ))}
         </div>
-
-        <div className="p-8 glass rounded-[32px] border border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>
-            <h4 className="text-xl serif mb-2">실시간 필터링 검색</h4>
-            <p className="text-sm opacity-60">
-              에어비앤비에서 현재 예약 가능한 모든 {activeStayCat}인 숙소를 실시간으로 확인하세요.
-            </p>
-          </div>
-          <a 
-            href={activeStay?.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-8 py-4 bg-lime text-forest rounded-full font-bold hover:bg-lime/90 transition-all whitespace-nowrap"
-          >
-            {activeStayCat}인 숙소 전체 보기
-          </a>
-        </div>
-      </header>
-
-      {/* Food Section */}
-      <header className="mb-12 pt-12 border-t border-white/10">
-        <h1 className="text-4xl md:text-7xl font-bold mb-8">먹거리</h1>
-        <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
-          "조호바루의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
-        </p>
-        
-        <div className="flex flex-wrap gap-4 mb-12">
-          {['All', 'Nearby', 'Market', 'LocalTop10', 'KSL'].map((cat) => (
-            <button 
-              key={cat}
-              onClick={() => setActiveCategory(cat as any)}
-              className={cn(
-                "pill-nav",
-                activeCategory === cat ? "active-pill" : "text-white/60"
-              )}
-            >
-              {cat === 'All' ? '전체보기' : 
-               cat === 'Nearby' ? '주변 맛집' : 
-               cat === 'Market' ? '야시장' : 
-               cat === 'LocalTop10' ? '현지인 맛집10' : 'KSL 시티몰 TOP 10'}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-8 glass rounded-[32px] border border-white/10">
-          <h4 className="text-xl serif mb-2">현지 미식 가이드</h4>
-          <p className="text-sm opacity-60 max-w-3xl">
-            말레이시아 골프 여행의 완성은 맛있는 음식입니다. 조호바루 시내의 활기찬 야시장부터 현지인들이 줄 서서 먹는 진짜 맛집들을 엄선했습니다. 각 매장의 대표 메뉴와 방문 팁을 확인해보세요.
-          </p>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {filteredFood.map((item) => (
-          <div key={item.id}>
-            <FoodCard item={item} />
-          </div>
-        ))}
       </div>
+
+      <TravelGuide />
     </div>
   );
 };

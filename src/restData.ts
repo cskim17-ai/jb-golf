@@ -18,6 +18,8 @@ export interface RestItem {
 }
 
 export const REST_CATEGORIES = [
+  '현지인 맛집 10',
+  'KSL시티몰 TOP10',
   'KSL 몰 인근 추천 스파',
   '조호바루 추천 스파 (KSL 외 지역)',
   '쇼핑 & 라이프스타일',
@@ -26,7 +28,301 @@ export const REST_CATEGORIES = [
 ];
 
 export const REST_DATA: RestItem[] = [
-  // 1. KSL 몰 인근 추천 스파
+  {
+    id: 'gerai-ayong',
+    category: '현지인 맛집 10',
+    name: 'Gerai Ayong (Ayong Ikan Bakar)',
+    description: '조호바루 현지인들이 사랑하는 \'이칸 바카르(생선구이)\' 전문점으로, 합리적인 가격에 풍성한 말레이시아 현지 맛을 경험할 수 있는 곳입니다. 40년 넘는 전통을 자랑하며 \'No Pork, No Lard\' 원칙을 지키는 할랄 친화적 중식 스타일의 요리를 선보입니다.',
+    reason: '1977년부터 이어온 정통 이칸 바카르와 시원한 디저트의 만남',
+    address: 'Stall 3A, Medan Selera Tepian Tebrau, Jalan Skudai, Johor Bahru',
+    contact: '013-775 4488 / 013-721 4121',
+    hours: '오전 11:00 ~ 오후 07:30 (매주 수요일 휴무)',
+    photoUrl: 'https://picsum.photos/seed/ayong/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'pasar-karat',
+    category: '현지인 맛집 10',
+    name: '파사르 카랏 야시장 (Pasar Karat)',
+    description: '조호바루 시티 스퀘어와 가까운 Jalan Segget 거리를 따라 펼쳐지는 이 야시장은 \'벼룩시장(Flea Market)\'의 성격을 띠고 있습니다. 빈티지한 아이템들과 버스킹 공연이 낭만적인 밤 분위기를 더해줍니다.',
+    reason: '빈티지한 소품부터 길거리 먹거리까지, 조호바루의 활기가 가득한 밤',
+    address: '26, 20, Jalan Segget, Bandar Johor Bahru, 80000 Johor Bahru, Johor',
+    hours: '화요일 ~ 일요일: 오후 6:00 ~ 새벽 2:00 (매주 월요일 휴무)',
+    photoUrl: 'https://picsum.photos/seed/market/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-1',
+    category: '현지인 맛집 10',
+    name: 'Kam Long Ah Zai Curry Fish Head (금롱 커리 피쉬 헤드)',
+    description: '30년 넘게 조호바루 시내(City Centre)를 지켜온 전설적인 곳입니다. 아침부터 셔터가 올라가기 전 줄을 서야 하며, 단 하나의 메뉴 \'커리 생선머리\'로 빌딩을 세웠다고 할 만큼 유명합니다.',
+    reason: '30년 전통, 조호바루 시내를 지켜온 전설적인 커리 생선머리',
+    address: '7, Jalan Wong Ah Fook, Bandar Johor Bahru (시티스퀘어 인근)',
+    hours: '08:00 ~ 16:00',
+    photoUrl: 'https://picsum.photos/seed/curry/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-2',
+    category: '현지인 맛집 10',
+    name: 'Restoran Todak (토닥 해산물 레스토랑)',
+    description: '바다 위에 떠 있는 수상 가옥 형태의 해산물 식당입니다. 30년 전이나 지금이나 조호바루에서 해산물을 하면 가장 먼저 떠올리는 곳으로, 석양을 보며 식사하기 좋습니다.',
+    reason: '바다 위 수상 가옥에서 즐기는 낭만적인 해산물 만찬',
+    address: '1, Kampung Orang Asli, Telok Jawa, Masai (시내에서 차로 20분)',
+    hours: '11:30 ~ 23:30',
+    photoUrl: 'https://picsum.photos/seed/seafood/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-3',
+    category: '현지인 맛집 10',
+    name: 'Hua Mui Restoran (화무이 식당)',
+    description: '1946년부터 시작된 조호바루에서 가장 오래된 하이난 스타일 코피티암입니다. 30년 전 제가 어릴 때 먹던 그 맛 그대로를 간직한 곳입니다.',
+    reason: '1946년부터 이어온 조호바루의 역사가 담긴 하이난 코피티암',
+    address: '131, Jalan Trus, Bandar Johor Bahru',
+    hours: '08:30 ~ 18:00',
+    photoUrl: 'https://picsum.photos/seed/kopitiam/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-4',
+    category: '현지인 맛집 10',
+    name: 'New Meng Kee Steam Fish (뉴 명키 스팀 피쉬)',
+    description: '주민들이 \'생선 찜\' 하면 망설임 없이 가는 곳입니다. 신선함이 생명인 중국식 생선 찜 요리가 기가 막히게 잘합니다.',
+    reason: '현지인들이 생선 찜 하면 가장 먼저 떠올리는 신선한 중국식 요리',
+    address: '36, Jalan Dedap 13, Taman Johor Jaya',
+    hours: '11:00 ~ 22:00',
+    photoUrl: 'https://picsum.photos/seed/steamfish/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-5',
+    category: '현지인 맛집 10',
+    name: 'Restoran Pekin (북경 루)',
+    description: '조호바루 주민들이 결혼식이나 가족 연회를 열 때 가장 선호하는 고급 중식 체인입니다. 타만 수테라 지점이 특히 인기가 많습니다.',
+    reason: '격식 있는 자리와 가족 연회에 최적인 고급 중식 레스토랑',
+    address: '2, Jalan SUTERA 3, Taman Sutera Utama',
+    hours: '11:00 ~ 22:30',
+    photoUrl: 'https://picsum.photos/seed/pekin/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-6',
+    category: '현지인 맛집 10',
+    name: 'San Low Seafood (산로 해산물)',
+    description: '펠랑기(Pelangi) 지역의 터줏대감입니다. 이곳은 특이하게 해산물만큼 유명한 볶음면이 있어 야식 성지로 불립니다.',
+    reason: '펠랑기 지역의 터줏대감, 바삭한 볶음면이 일품인 야식 성지',
+    address: 'Jalan Biru, Taman Pelangi',
+    hours: '16:30 ~ 01:00 (새벽까지 운영)',
+    photoUrl: 'https://picsum.photos/seed/noodle/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-7',
+    category: '현지인 맛집 10',
+    name: 'Re Patisserie (레 파티세리)',
+    description: '최근 몇 년 사이 조호바루 카페 씬(Scene)에서 평점 1위를 달리고 있는 고급 디저트 샵입니다. 매우 감각적인 인테리어를 자랑합니다.',
+    reason: '조호바루에서 가장 감각적인 평점 1위 고급 디저트 샵',
+    address: '77, Jalan Beringin, Taman Melodies',
+    hours: '10:00 ~ 18:00',
+    photoUrl: 'https://picsum.photos/seed/pastry/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-8',
+    category: '현지인 맛집 10',
+    name: 'Restoran Ya Wang (아왕 오리구이)',
+    description: '시티스퀘어 근처 약초 오리구이 전문점입니다. 싱가포르의 유명 오리구이 맛집의 원조 격인 비법을 가진 곳으로 알려져 있습니다.',
+    reason: '싱가포르 유명 맛집의 원조 격인 비법을 가진 약초 오리구이',
+    address: '28, Jalan Segget, Bandar Johor Bahru',
+    hours: '08:00 ~ 18:00',
+    photoUrl: 'https://picsum.photos/seed/duck/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-9',
+    category: '현지인 맛집 10',
+    name: 'Bansan Curry Fish Head (반산 커리 피쉬 헤드)',
+    description: '1번의 금롱과 쌍벽을 이루는 주민 맛집입니다. 금롱이 시내라면, 이곳은 주택가(Taman Perling) 쪽 주민들의 전폭적인 지지를 받습니다.',
+    reason: '주택가 주민들의 전폭적인 지지를 받는 진짜 로컬 커리 생선머리',
+    address: '1, Jalan Layang 1, Taman Perling',
+    hours: '08:00 ~ 15:30',
+    photoUrl: 'https://picsum.photos/seed/curryfish/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'local-10',
+    category: '현지인 맛집 10',
+    name: 'Principle Cafe by T.A.M',
+    description: '조호바루 구시가지의 고전적인 건물을 현대적으로 재해석한 카페 겸 레스토랑입니다. 깔끔한 퓨전 요리로 평점이 매우 높습니다.',
+    reason: '고전적인 건물을 현대적으로 재해석한 세련된 오아시스 카페',
+    address: '82, Jalan Trus, Bandar Johor Bahru',
+    hours: '10:00 ~ 18:00',
+    photoUrl: 'https://picsum.photos/seed/cafe/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-1',
+    category: 'KSL시티몰 TOP10',
+    name: 'Soon Soon Heng Bak Kut Teh (순순흥 바쿠테)',
+    description: 'KSL 몰 정문 맞은편의 전설적인 바쿠테 맛집. 싱가포르인들도 줄 서서 먹는 곳입니다.',
+    reason: 'KSL 몰 정문 맞은편의 전설적인 바쿠테 맛집. 싱가포르인들도 줄 서서 먹는 곳입니다.',
+    address: '43, Jalan Serampang, Taman Sri Tebrau (KSL 정문 맞은편)',
+    hours: '09:00 ~ 20:00',
+    photoUrl: 'https://picsum.photos/seed/bakkutteh/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-2',
+    category: 'KSL시티몰 TOP10',
+    name: 'You Kee XO Restaurant (유기 XO)',
+    description: 'KSL 몰 지하 1층의 광둥식 구이 전문점. 거대한 항아리에서 구워내는 고기가 특징입니다.',
+    reason: 'KSL 몰 지하 1층의 광둥식 구이 전문점. 거대한 항아리에서 구워내는 고기가 특징입니다.',
+    address: 'KSL City Mall, LG-33 (지하 1층)',
+    hours: '10:00 ~ 22:00',
+    photoUrl: 'https://picsum.photos/seed/roast/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-3',
+    category: 'KSL시티몰 TOP10',
+    name: 'Restoran Teck Sing (덕성 차찬실)',
+    description: '40년 전통의 노포. 종이에 싸서 한약재와 함께 쪄낸 치킨 요리로 유명합니다.',
+    reason: '40년 전통의 노포. 종이에 싸서 한약재와 함께 쪄낸 치킨 요리로 유명합니다.',
+    address: '3 & 5, Jalan Sutera 1, Taman Sentosa',
+    hours: '11:00 ~ 21:00',
+    photoUrl: 'https://picsum.photos/seed/chicken/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-4',
+    category: 'KSL시티몰 TOP10',
+    name: 'K Fry Urban Korean Holiday Villa',
+    description: 'KSL 몰 바로 옆 가장 핫한 외식 장소. 트렌디한 분위기의 한국 치킨 전문점입니다.',
+    reason: 'KSL 몰 바로 옆 가장 핫한 외식 장소. 트렌디한 분위기의 한국 치킨 전문점입니다.',
+    address: '260, Jalan Dato Sulaiman (Holiday Villa 1층)',
+    hours: '11:00 ~ 23:00',
+    photoUrl: 'https://picsum.photos/seed/korean/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-5',
+    category: 'KSL시티몰 TOP10',
+    name: 'Ah Hua Kueh Teow (아화 과조)',
+    description: '자극적이지 않고 깊은 국물 맛의 조호바루식 쌀국수 노포입니다.',
+    reason: '자극적이지 않고 깊은 국물 맛의 조호바루식 쌀국수 노포입니다.',
+    address: 'Jalan Segget 근처 또는 Taman Melodies 분점',
+    hours: '08:00 ~ 14:30',
+    photoUrl: 'https://picsum.photos/seed/soup/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-6',
+    category: 'KSL시티몰 TOP10',
+    name: 'D\'Laksa KSL City Mall',
+    description: '말레이시아 10대 음식인 \'아삼 락사\'를 대중적으로 즐길 수 있는 곳입니다.',
+    reason: '말레이시아 10대 음식인 \'아삼 락사\'를 대중적으로 즐길 수 있는 곳입니다.',
+    address: 'KSL City Mall, LG-62 (지하 1층)',
+    hours: '10:00 ~ 22:00',
+    photoUrl: 'https://picsum.photos/seed/laksa/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-7',
+    category: 'KSL시티몰 TOP10',
+    name: 'Yit Foh Wanton Noodle (익화 완탕면)',
+    description: '수십 년간 완탕면 하나로 자리를 지켜온 면발 맛집입니다.',
+    reason: '수십 년간 완탕면 하나로 자리를 지켜온 면발 맛집입니다.',
+    address: '153, Jalan Harimau, Taman Century',
+    hours: '09:00 ~ 21:00 (목요일 휴무)',
+    photoUrl: 'https://picsum.photos/seed/wanton/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-8',
+    category: 'KSL시티몰 TOP10',
+    name: 'Restoran Kak Kak (가가 점심차루)',
+    description: '전통 카트 방식의 딤섬 집. 원하는 딤섬을 즉석에서 고르는 재미가 있습니다.',
+    reason: '전통 카트 방식의 딤섬 집. 원하는 딤섬을 즉석에서 고르는 재미가 있습니다.',
+    address: '9, Jalan Maju, Taman Maju Jaya',
+    hours: '06:30 ~ 14:00 (화요일 휴무)',
+    photoUrl: 'https://picsum.photos/seed/dimsum/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-9',
+    category: 'KSL시티몰 TOP10',
+    name: 'Cedar Point Food Centre (시더 포인트 푸드코트)',
+    description: '수십 개의 노점이 모여 있는 대형 야외 푸드코트. 저녁에 맥주와 함께 즐기기 좋습니다.',
+    reason: '수십 개의 노점이 모여 있는 대형 야외 푸드코트. 저녁에 맥주와 함께 즐기기 좋습니다.',
+    address: 'Jalan Musang Bulan, Taman Abad',
+    hours: '18:00 ~ 밤 늦게까지',
+    photoUrl: 'https://picsum.photos/seed/foodcourt/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-10',
+    category: 'KSL시티몰 TOP10',
+    name: 'Sweet Blossom Coffee Roasters',
+    description: '전문 로스터리 카페. 주인장의 장인정신이 담긴 라떼 아트로 유명합니다.',
+    reason: '전문 로스터리 카페. 주인장의 장인정신이 담긴 라떼 아트로 유명합니다.',
+    address: '28, Jalan Taman Melodies',
+    hours: '09:00 ~ 17:00 (목요일 휴무)',
+    photoUrl: 'https://picsum.photos/seed/coffee/800/600',
+    region: '조호바루'
+  },
+  {
+    id: 'ksl-spa-11',
+    category: 'KSL 몰 인근 추천 스파',
+    name: '스파 릴렉스 (Spa Relax) - KSL City Mall',
+    description: 'KSL 몰 내 위치한 아늑한 분위기의 스파로, 전문적인 테라피스트들이 제공하는 맞춤형 마사지가 특징입니다.',
+    address: 'KSL City Mall, Level 2',
+    contact: '+60 7-331 1612',
+    price: {
+      foot: '(60분) 65 RM / (90분) 95 RM',
+      body: '(60분) 85 RM / (90분) 115 RM'
+    },
+    hours: '10:00 – 22:00'
+  },
+  {
+    id: 'ksl-spa-12',
+    category: 'KSL 몰 인근 추천 스파',
+    name: '더 젠 스파 (The Zen Spa) - KSL City Mall',
+    description: '동양적인 인테리어와 함께 조용한 분위기에서 깊은 휴식을 취할 수 있는 스파입니다.',
+    address: 'KSL City Mall, Level 2',
+    contact: '+60 7-336 4369',
+    price: {
+      foot: '(60분) 70 RM / (90분) 100 RM',
+      body: '(60분) 90 RM / (90분) 130 RM'
+    },
+    hours: '10:00 – 22:00'
+  },
+  {
+    id: 'ksl-spa-13',
+    category: 'KSL 몰 인근 추천 스파',
+    name: '오아시스 스파 (Oasis Spa) - KSL City Mall',
+    description: '몰 내에서 가장 넓은 공간을 자랑하며, 가족 단위 고객에게 적합한 편안한 환경을 제공합니다.',
+    address: 'KSL City Mall, Level 2',
+    contact: '+60 17-212 6606',
+    price: {
+      foot: '(60분) 60 RM / (90분) 85 RM',
+      body: '(60분) 85 RM / (90분) 115 RM'
+    },
+    hours: '10:00 – 22:00'
+  },
+  {
+    id: 'ksl-spa-14',
+    category: 'KSL 몰 인근 추천 스파',
+    name: '힐링 터치 (Healing Touch) - KSL City Mall',
+    description: '숙련된 테라피스트들의 손길로 라운딩 후 뭉친 근육을 확실하게 풀어주는 스파입니다.',
+    address: 'KSL City Mall, Level 2',
+    contact: '+60 7-331 1612',
+    price: {
+      foot: '(60분) 65 RM / (90분) 95 RM',
+      body: '(60분) 85 RM / (90분) 115 RM'
+    },
+    hours: '10:00 – 22:00'
+  },
   {
     id: 'ksl-spa-1',
     category: 'KSL 몰 인근 추천 스파',
@@ -41,6 +337,7 @@ export const REST_DATA: RestItem[] = [
     hours: '10:00 – 22:00',
     website: 'https://thaiodyssey.com'
   },
+
   {
     id: 'ksl-spa-2',
     category: 'KSL 몰 인근 추천 스파',
