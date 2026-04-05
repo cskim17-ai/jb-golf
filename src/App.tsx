@@ -640,7 +640,7 @@ const Golf = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">골프장 소개</h1>
+        <h1 className="text-4xl md:text-7xl font-bold mb-8">골프장 소개</h1>
         <div className="flex flex-wrap gap-4">
           {['All', 'Premium', 'Value', 'Accessibility'].map((f) => (
             <button 
@@ -870,7 +870,7 @@ const Stay = () => {
       {/* Stay Section */}
       <header className="mb-12">
         <div className="flex items-center gap-6 mb-8">
-          <h1 className="text-7xl serif">숙소 <span className="italic text-lime"></span></h1>
+          <h1 className="text-4xl md:text-7xl font-bold">숙소 <span className="italic text-lime"></span></h1>
           <a 
             href="https://www.google.com/maps/search/?api=1&query=KSL+City+Mall+Johor+Bahru"
             target="_blank"
@@ -920,7 +920,7 @@ const Stay = () => {
 
       {/* Food Section */}
       <header className="mb-12 pt-12 border-t border-white/10">
-        <h1 className="text-7xl serif mb-8">먹거리</h1>
+        <h1 className="text-4xl md:text-7xl font-bold mb-8">먹거리</h1>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
           "조호바루의 숨겨진 미식의 세계. 야나골 골프클럽이 추천하는 현지인 맛집 리스트"
         </p>
@@ -1016,7 +1016,7 @@ const Pricing = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-8">가격표</h1>
+        <h1 className="text-4xl md:text-7xl font-bold mb-8">가격표</h1>
         <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8 mb-8">
           <div className="space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">현재 날짜</p>
@@ -1438,7 +1438,7 @@ const Booking = () => {
       <header className="mb-12">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-7xl serif mb-4">예약하기</h1>
+            <h1 className="text-4xl md:text-7xl font-bold mb-4">예약하기</h1>
             <p className="text-sm opacity-40 tracking-widest uppercase">
               {format(new Date(), 'yyyy.MM.dd')} | 환율: 1 MYR = {exchangeRate} 원
             </p>
@@ -1942,7 +1942,7 @@ const NoticeList = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-4xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-7xl serif mb-4">공지사항</h1>
+        <h1 className="text-4xl md:text-7xl font-bold mb-4">공지사항</h1>
         <p className="text-xl serif italic opacity-60">야나골 골프클럽의 새로운 소식과 안내사항을 확인하세요.</p>
       </header>
 
