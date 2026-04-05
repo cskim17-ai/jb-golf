@@ -8,7 +8,7 @@ import {
   Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight,
   CheckCircle2, AlertCircle, Send, Search,
-  Plus, Trash2, ChevronUp, ChevronDown
+  Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -27,7 +27,8 @@ import {
   serverTimestamp,
   getDocFromServer,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  where
 } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { db, auth } from './firebase';
@@ -965,7 +966,20 @@ const Pricing = () => {
   const currentDate = format(new Date(), 'yyyy-MM-dd');
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const exchangeRate = useExchangeRate();
+
+  // Helper to get category from GOLF_COURSES
+  const getCourseCategory = (courseName: string) => {
+    const course = GOLF_COURSES.find(c => c.name.includes(courseName) || courseName.includes(c.name));
+    if (!course) return '기타';
+    switch (course.category) {
+      case 'Premium': return '프리미엄';
+      case 'Value': return '가성비';
+      case 'Accessibility': return '접근성';
+      default: return '기타';
+    }
+  };
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
@@ -973,6 +987,7 @@ const Pricing = () => {
         const d = doc.data() as CoursePricing;
         return {
           ...d,
+          category: getCourseCategory(d.courseName),
           rows: d.rows.map(r => ({
             ...r,
             item: r.item.replace(/\s*\(Green Fee\)/gi, '')
@@ -1002,7 +1017,7 @@ const Pricing = () => {
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
         <h1 className="text-7xl serif mb-8">가격표</h1>
-        <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8">
+        <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8 mb-8">
           <div className="space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">현재 날짜</p>
             <p className="text-2xl serif">{currentDate}</p>
@@ -1012,11 +1027,31 @@ const Pricing = () => {
             <p className="text-2xl serif">1 MYR = {exchangeRate} 원</p>
           </div>
         </div>
+
+        {/* Category Filter Buttons */}
+        <div className="flex flex-wrap gap-3">
+          {['전체', '프리미엄', '가성비', '접근성'].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={cn(
+                "px-8 py-2.5 rounded-full border transition-all text-sm font-medium",
+                selectedCategory === cat 
+                  ? "bg-lime/10 border-lime text-lime shadow-[0_0_20px_rgba(163,230,53,0.15)]" 
+                  : "bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="space-y-12">
-        {pricingData.map((course) => (
-          <div key={course.id} className="glass rounded-[40px] p-8 border border-white/10">
+        {pricingData
+          .filter(course => selectedCategory === '전체' || course.category === selectedCategory)
+          .map((course) => (
+          <div key={course.id} id={`course-${course.id}`} className="glass rounded-[40px] p-8 border border-white/10 scroll-mt-32">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <h2 className="text-3xl serif">{course.courseName}</h2>
               {course.remarks && (
@@ -1070,6 +1105,7 @@ const Pricing = () => {
 
 const Booking = () => {
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [options, setOptions] = useState<Record<string, Array<{ 
     scheduleId: string,
     day: 'weekday' | 'weekend', 
@@ -1179,7 +1215,7 @@ const Booking = () => {
       const newOptions = { ...options };
       delete newOptions[id];
       setOptions(newOptions);
-    } else if (selectedCourses.length < 10) {
+    } else {
       setSelectedCourses([...selectedCourses, id]);
       const today = new Date();
       const initialDay = isWeekend(today) ? 'weekend' : 'weekday';
@@ -1419,17 +1455,34 @@ const Booking = () => {
         {/* Selection Area */}
         <div className="space-y-12">
           <section>
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl serif flex items-center gap-3">
                 <Calculator size={24} className="opacity-40" />
                 1. 골프장 선택
               </h2>
-              <p className="text-xs tracking-widest uppercase opacity-40">
-                {selectedCourses.length} / 10 선택
-              </p>
+              
+              <div className="flex items-center gap-4">
+                <select 
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="p-2 bg-[#1a2e1a] border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:border-lime transition-all"
+                >
+                  <option value="전체">전체</option>
+                  <option value="Premium">프리미엄</option>
+                  <option value="Value">가성비</option>
+                  <option value="Accessibility">접근성</option>
+                </select>
+
+                <p className="text-xs tracking-widest uppercase opacity-40">
+                  {selectedCourses.length} / {GOLF_COURSES.length} 선택
+                </p>
+              </div>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {GOLF_COURSES.map(course => (
+              {GOLF_COURSES
+                .filter(c => selectedCategory === '전체' || c.category === selectedCategory)
+                .map(course => (
                 <button
                   key={course.id}
                   onClick={() => toggleCourse(course.id)}
@@ -1819,6 +1872,7 @@ interface PricingRow {
 interface CoursePricing {
   id: string;
   courseName: string;
+  category?: string;
   remarks: string;
   adminMemo?: string;
   rows: PricingRow[];
@@ -1846,6 +1900,8 @@ interface Notice {
   content: string;
   createdAt: string;
   isPinned?: boolean;
+  showAsPopup?: boolean;
+  imageUrl?: string;
   author?: string;
 }
 
@@ -1937,9 +1993,19 @@ const NoticeList = () => {
                   >
                     <div className="px-6 pb-8 pt-2 border-t border-white/5">
                       <div className="prose prose-invert max-w-none">
-                        <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-white/80 leading-relaxed whitespace-pre-wrap mb-6">
                           {notice.content}
                         </p>
+                        {notice.imageUrl && (
+                          <div className="rounded-2xl overflow-hidden border border-white/10 max-w-2xl">
+                            <img 
+                              src={notice.imageUrl} 
+                              alt={notice.title} 
+                              className="w-full h-auto object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -1962,9 +2028,38 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [newNotice, setNewNotice] = useState({ title: '', content: '', isPinned: false });
+  const [newNotice, setNewNotice] = useState({ 
+    title: '', 
+    content: '', 
+    isPinned: false,
+    showAsPopup: false,
+    imageUrl: ''
+  });
   const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === '9175938') {
+      setIsPasswordVerified(true);
+      setFailedAttempts(0);
+    } else {
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      setPasswordInput('');
+      if (newAttempts >= 5) {
+        showAlert('비밀번호를 5회 이상 틀렸습니다. 홈화면으로 이동합니다.');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        showAlert(`비밀번호가 틀렸습니다. (남은 횟수: ${5 - newAttempts})`);
+      }
+    }
+  };
 
   useEffect(() => {
     // Clear any existing auth state when entering admin
@@ -2203,6 +2298,7 @@ const Admin = () => {
     const newCourse: CoursePricing = {
       id: Date.now().toString(),
       courseName: availableNames[0],
+      category: '',
       remarks: '',
       rows: [
         { item: '그린피', division: '주중', morning: 0, afternoon: 0 },
@@ -2275,7 +2371,7 @@ const Admin = () => {
     }));
   };
 
-  const updateCourseField = (id: string, field: 'courseName' | 'remarks' | 'adminMemo', value: string) => {
+  const updateCourseField = (id: string, field: 'courseName' | 'remarks' | 'adminMemo' | 'category', value: string) => {
     setPricingData(pricingData.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
@@ -2389,7 +2485,42 @@ const Admin = () => {
         )}
       </div>
 
-      {!user && (
+      {!user && !isPasswordVerified && (
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
+            <div className="w-16 h-16 rounded-full bg-lime/10 flex items-center justify-center mx-auto mb-6">
+              <Clock className="text-lime" size={32} />
+            </div>
+            <h2 className="text-2xl serif mb-4 text-white">관리자 전용 화면입니다.</h2>
+            <p className="text-sm opacity-60 mb-8">비밀번호를 입력해 주세요</p>
+            
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <input 
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-lime outline-none transition-all text-center tracking-[0.5em]"
+                placeholder="•••••••"
+                autoFocus
+              />
+              <button 
+                type="submit"
+                className="w-full py-4 bg-lime text-forest rounded-xl font-bold hover:shadow-[0_0_20px_rgba(163,230,53,0.3)] transition-all"
+              >
+                확인
+              </button>
+            </form>
+            
+            {failedAttempts > 0 && (
+              <p className="mt-4 text-xs text-red-400">
+                비밀번호 오류: {failedAttempts}/5회
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!user && isPasswordVerified && (
         <div className="flex flex-col items-center justify-center min-h-[40vh]">
           <div className="glass max-w-md w-full p-12 rounded-[40px] border border-white/10 text-center">
             <h2 className="text-3xl serif mb-8">
@@ -2438,6 +2569,19 @@ const Admin = () => {
 
               <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6 border-b border-white/10 pb-6 ml-8">
                 <div className="flex-grow w-full space-y-4">
+                  <div className="max-w-xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">카테고리</label>
+                    <select 
+                      value={course.category || ''}
+                      onChange={(e) => updateCourseField(course.id, 'category', e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all appearance-none"
+                    >
+                      <option value="" className="bg-forest text-white">카테고리 선택</option>
+                      <option value="프리미엄" className="bg-forest text-white">프리미엄</option>
+                      <option value="가성비" className="bg-forest text-white">가성비</option>
+                      <option value="접근성" className="bg-forest text-white">접근성</option>
+                    </select>
+                  </div>
                   <div className="max-w-xl">
                     <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">골프장명</label>
                     <select 
@@ -2586,7 +2730,7 @@ const Admin = () => {
             <button 
               onClick={() => {
                 setEditingNoticeId(null);
-                setNewNotice({ title: '', content: '', isPinned: false });
+                setNewNotice({ title: '', content: '', isPinned: false, showAsPopup: false, imageUrl: '' });
               }}
               className="bg-lime text-forest px-8 py-3 rounded-full font-bold hover:bg-lime/90 transition-all"
             >
@@ -2617,15 +2761,76 @@ const Admin = () => {
                   placeholder="공지사항 내용을 입력하세요"
                 />
               </div>
-              <div className="flex items-center gap-3 ml-2">
-                <input 
-                  type="checkbox"
-                  id="isPinned"
-                  checked={newNotice.isPinned}
-                  onChange={(e) => setNewNotice({ ...newNotice, isPinned: e.target.checked })}
-                  className="w-5 h-5 accent-lime"
-                />
-                <label htmlFor="isPinned" className="text-sm opacity-80 cursor-pointer">상단 고정</label>
+              <div className="flex flex-wrap gap-6">
+                <div className="flex items-center gap-3 ml-2">
+                  <input 
+                    type="checkbox"
+                    id="isPinned"
+                    checked={newNotice.isPinned}
+                    onChange={(e) => setNewNotice({ ...newNotice, isPinned: e.target.checked })}
+                    className="w-5 h-5 accent-lime"
+                  />
+                  <label htmlFor="isPinned" className="text-sm opacity-80 cursor-pointer">상단 고정</label>
+                </div>
+                <div className="flex items-center gap-3 ml-2">
+                  <input 
+                    type="checkbox"
+                    id="showAsPopup"
+                    checked={newNotice.showAsPopup}
+                    onChange={(e) => setNewNotice({ ...newNotice, showAsPopup: e.target.checked })}
+                    className="w-5 h-5 accent-lime"
+                  />
+                  <label htmlFor="showAsPopup" className="text-sm opacity-80 cursor-pointer">공지 팝업으로 표시</label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">이미지 첨부 (URL 또는 파일)</label>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <input 
+                    type="text"
+                    value={newNotice.imageUrl}
+                    onChange={(e) => setNewNotice({ ...newNotice, imageUrl: e.target.value })}
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:border-lime outline-none transition-all text-sm"
+                    placeholder="이미지 URL을 입력하거나 파일을 선택하세요"
+                  />
+                  <div className="relative">
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 800000) { // 800KB limit for Firestore doc size safety
+                            showAlert('이미지 용량이 너무 큽니다. (800KB 이하 권장)');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewNotice({ ...newNotice, imageUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <button className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-xl transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                      <ImageIcon size={18} />
+                      파일 선택
+                    </button>
+                  </div>
+                </div>
+                {newNotice.imageUrl && (
+                  <div className="mt-4 relative w-32 h-32 rounded-xl overflow-hidden border border-white/10 group">
+                    <img src={newNotice.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      onClick={() => setNewNotice({ ...newNotice, imageUrl: '' })}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex gap-4 pt-4">
                 <button 
@@ -2650,7 +2855,7 @@ const Admin = () => {
                         });
                         showAlert('공지사항이 등록되었습니다.');
                       }
-                      setNewNotice({ title: '', content: '', isPinned: false });
+                      setNewNotice({ title: '', content: '', isPinned: false, showAsPopup: false, imageUrl: '' });
                       setEditingNoticeId(null);
                     } catch (error) {
                       console.error("Notice save error:", error);
@@ -2668,7 +2873,7 @@ const Admin = () => {
                   <button 
                     onClick={() => {
                       setEditingNoticeId(null);
-                      setNewNotice({ title: '', content: '', isPinned: false });
+                      setNewNotice({ title: '', content: '', isPinned: false, showAsPopup: false, imageUrl: '' });
                     }}
                     className="bg-white/5 hover:bg-white/10 border border-white/10 px-10 py-3 rounded-full transition-all"
                   >
@@ -2706,7 +2911,13 @@ const Admin = () => {
                       <button 
                         onClick={() => {
                           setEditingNoticeId(notice.id);
-                          setNewNotice({ title: notice.title, content: notice.content, isPinned: !!notice.isPinned });
+                          setNewNotice({ 
+                            title: notice.title, 
+                            content: notice.content, 
+                            isPinned: !!notice.isPinned,
+                            showAsPopup: !!notice.showAsPopup,
+                            imageUrl: notice.imageUrl || ''
+                          });
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         className="text-white/40 hover:text-lime transition-colors"
@@ -2720,7 +2931,7 @@ const Admin = () => {
                               await deleteDoc(doc(db, 'notices', notice.id));
                               if (editingNoticeId === notice.id) {
                                 setEditingNoticeId(null);
-                                setNewNotice({ title: '', content: '', isPinned: false });
+                                setNewNotice({ title: '', content: '', isPinned: false, showAsPopup: false, imageUrl: '' });
                               }
                             } catch (error) {
                               console.error("Notice delete error:", error);
@@ -3327,6 +3538,121 @@ const Gallery = () => {
   );
 };
 
+const NoticePopup = () => {
+  const [popups, setPopups] = useState<Notice[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'notices'), where('showAsPopup', '==', true));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Notice);
+      
+      // Filter out those hidden by user (today)
+      const hiddenData = JSON.parse(localStorage.getItem('hiddenNotices') || '{}');
+      const now = new Date().getTime();
+      
+      const activePopups = data.filter(n => {
+        const hiddenUntil = hiddenData[n.id];
+        return !hiddenUntil || now > hiddenUntil;
+      });
+      
+      if (activePopups.length > 0) {
+        setPopups(activePopups);
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    }, (error) => {
+      console.error("Popup fetch error:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const closeForToday = () => {
+    const hiddenData = JSON.parse(localStorage.getItem('hiddenNotices') || '{}');
+    const currentId = popups[currentIndex].id;
+    // Hide for 24 hours
+    hiddenData[currentId] = new Date().getTime() + (24 * 60 * 60 * 1000);
+    localStorage.setItem('hiddenNotices', JSON.stringify(hiddenData));
+    handleClose();
+  };
+
+  const handleClose = () => {
+    if (currentIndex < popups.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setIsVisible(false);
+    }
+  };
+
+  if (!isVisible || popups.length === 0) return null;
+
+  const currentNotice = popups[currentIndex];
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+      >
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          className="glass max-w-lg w-full rounded-[32px] border border-white/20 overflow-hidden shadow-2xl flex flex-col"
+        >
+          <div className="p-6 border-b border-white/10 flex justify-between items-center bg-lime/10">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="text-lime" size={20} />
+              <h3 className="text-lg serif text-white">공지사항</h3>
+            </div>
+            <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-full transition-all">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="p-8 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <h2 className="text-2xl serif mb-4 text-lime">{currentNotice.title}</h2>
+            <div className="prose prose-invert max-w-none mb-6">
+              <p className="text-white/80 leading-relaxed whitespace-pre-wrap">
+                {currentNotice.content}
+              </p>
+            </div>
+            {currentNotice.imageUrl && (
+              <div className="rounded-2xl overflow-hidden border border-white/10">
+                <img 
+                  src={currentNotice.imageUrl} 
+                  alt={currentNotice.title} 
+                  className="w-full h-auto object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-white/10 flex justify-between items-center bg-black/20">
+            <button 
+              onClick={closeForToday}
+              className="text-xs opacity-60 hover:opacity-100 transition-opacity flex items-center gap-2"
+            >
+              오늘 하루 보지 않기
+            </button>
+            <button 
+              onClick={handleClose}
+              className="bg-lime text-forest px-8 py-2 rounded-full font-bold text-sm hover:shadow-[0_0_20px_rgba(163,230,53,0.3)] transition-all"
+            >
+              닫기
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
@@ -3349,6 +3675,7 @@ export default function App() {
     <ExchangeRateProvider>
       <Router basename={import.meta.env.BASE_URL}>
         <div className="min-h-screen flex flex-col">
+          <NoticePopup />
           <Navbar />
           <main className="flex-grow">
             <Routes>

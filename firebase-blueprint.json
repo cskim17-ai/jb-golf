@@ -7,6 +7,7 @@
       "properties": {
         "id": { "type": "string" },
         "courseName": { "type": "string" },
+        "category": { "type": "string" },
         "remarks": { "type": "string" },
         "adminMemo": { "type": "string" },
         "rows": {
@@ -42,7 +43,7 @@
         "message": { "type": "string" }
       },
       "required": ["id", "timestamp", "from_name", "email", "total_myr", "total_krw"]
-    }
+    },
     "Notice": {
       "title": "Notice",
       "description": "A public notice or announcement from the admin",
@@ -53,6 +54,8 @@
         "content": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "isPinned": { "type": "boolean" },
+        "showAsPopup": { "type": "boolean" },
+        "imageUrl": { "type": "string" },
         "author": { "type": "string" }
       },
       "required": ["id", "title", "content", "createdAt"]
