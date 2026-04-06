@@ -8,7 +8,7 @@ import {
   Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight,
   CheckCircle2, AlertCircle, Send, Search,
-  Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon, Home as HomeIcon
+  Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon, Home as HomeIcon, Download
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -81,6 +81,18 @@ function handleFirestoreError(error: any, operationType: OperationType, path: st
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+interface GolferQuote {
+  id: string;
+  name: string;
+  nationality: string;
+  birthYear: string;
+  gender: string;
+  photoUrl: string;
+  quote: string;
+  source: string;
+  stats: string;
 }
 
 const ExchangeRateContext = createContext<number>(315);
@@ -1898,10 +1910,11 @@ const NoticeList = () => {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'pricing' | 'quotes' | 'notices'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'quotes' | 'notices' | 'golferQuotes'>('pricing');
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
   const [quotesData, setQuotesData] = useState<QuoteRequest[]>([]);
   const [noticesData, setNoticesData] = useState<Notice[]>([]);
+  const [golferQuotesData, setGolferQuotesData] = useState<GolferQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -1984,6 +1997,11 @@ const Admin = () => {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
 
+  // Filters for golfer quotes
+  const [golferFilterName, setGolferFilterName] = useState('');
+  const [golferFilterNationality, setGolferFilterNationality] = useState('전체');
+  const [golferFilterGender, setGolferFilterGender] = useState('전체');
+
   const [modal, setModal] = useState<{
     type: 'alert' | 'confirm' | null;
     message: string;
@@ -2039,10 +2057,19 @@ const Admin = () => {
       console.error("Admin notices fetch error:", error);
     });
 
+    const unsubscribeGolferQuotes = onSnapshot(collection(db, 'golferQuotes'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as GolferQuote);
+      // Sort by name or some other field if needed, here we just keep the order from Firebase
+      setGolferQuotesData(data);
+    }, (error) => {
+      console.error("Admin golfer quotes fetch error:", error);
+    });
+
     return () => {
       unsubscribePricing();
       unsubscribeQuotes();
       unsubscribeNotices();
+      unsubscribeGolferQuotes();
     };
   }, []);
 
@@ -2101,6 +2128,30 @@ const Admin = () => {
     
     // Generate filename with current date
     const fileName = `문의내역_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  const exportGolferQuotesToExcel = () => {
+    if (filteredGolferQuotes.length === 0) {
+      showAlert('다운로드할 데이터가 없습니다.');
+      return;
+    }
+
+    const dataToExport = filteredGolferQuotes.map((quote, index) => ({
+      '순번': index + 1,
+      '골퍼명': quote.name,
+      '국적 / 생년 / 성별': `${quote.nationality} / ${quote.birthYear} / ${quote.gender}`,
+      '대표사진 URL 주소 (이미지 검색)': quote.photoUrl || '',
+      '명언 (원문 포함)': quote.quote,
+      '출처': quote.source || '',
+      '통산 성적': quote.stats || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "골퍼명언모음");
+    
+    const fileName = `골퍼명언모음_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -2270,6 +2321,29 @@ const Admin = () => {
     return matchesName && matchesStartDate && matchesEndDate;
   });
 
+  const filteredGolferQuotes = golferQuotesData.filter(quote => {
+    const matchesName = quote.name.toLowerCase().includes(golferFilterName.toLowerCase());
+    const matchesNationality = golferFilterNationality === '전체' || quote.nationality === golferFilterNationality;
+    const matchesGender = golferFilterGender === '전체' || quote.gender === golferFilterGender;
+    return matchesName && matchesNationality && matchesGender;
+  });
+
+  const nationalityCounts = golferQuotesData.reduce((acc, quote) => {
+    if (quote.nationality) {
+      acc[quote.nationality] = (acc[quote.nationality] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const sortedNationalities = Object.entries(nationalityCounts)
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
+    .map(([name, count]) => ({ name, count }));
+
+  const nationalitiesOptions = [
+    { name: '전체', count: golferQuotesData.length },
+    ...sortedNationalities
+  ];
+
   if (loading) return (
     <div className="pt-40 pb-24 px-6 text-center">
       <div className="w-12 h-12 border-4 border-lime/30 border-t-lime rounded-full animate-spin mx-auto mb-4" />
@@ -2316,6 +2390,15 @@ const Admin = () => {
               )}
             >
               공지사항 관리
+            </button>
+            <button 
+              onClick={() => setActiveTab('golferQuotes')}
+              className={cn(
+                "text-lg serif transition-all border-b-2 pb-1",
+                activeTab === 'golferQuotes' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
+              )}
+            >
+              골퍼 명언 모음
             </button>
           </div>
         </div>
@@ -2825,6 +2908,136 @@ const Admin = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {activeTab === 'golferQuotes' && user && (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-3xl serif italic">골퍼 명언 모음</h2>
+            <button 
+              onClick={exportGolferQuotesToExcel}
+              className="bg-lime text-forest px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all"
+            >
+              <Download size={18} /> 엑셀 내보내기
+            </button>
+          </div>
+
+          {/* Filters */}
+          <div className="glass p-6 rounded-3xl border border-white/10 flex flex-wrap gap-8 items-end">
+            {/* Golfer Name Search */}
+            <div className="flex-grow min-w-[200px]">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2 font-bold">골퍼명 (LIKE 검색)</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40" size={18} />
+                <input 
+                  type="text"
+                  value={golferFilterName}
+                  onChange={(e) => setGolferFilterName(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-2 w-full focus:border-lime outline-none transition-all"
+                  placeholder="골퍼명 검색..."
+                />
+              </div>
+            </div>
+
+            {/* Nationality Filter */}
+            <div className="w-48">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2 font-bold">국적 선택</label>
+              <select 
+                value={golferFilterNationality}
+                onChange={(e) => setGolferFilterNationality(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 w-full focus:border-lime outline-none transition-all appearance-none cursor-pointer"
+              >
+                {nationalitiesOptions.map(nat => (
+                  <option key={nat.name} value={nat.name} className="bg-forest text-white">
+                    {nat.name === '전체' ? '전체' : `${nat.name}(${nat.count})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Gender Filter */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">성별 선택</label>
+              <div className="flex gap-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+                {['전체', '남', '여'].map((gender) => (
+                  <label key={gender} className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="radio"
+                      name="golferGender"
+                      value={gender}
+                      checked={golferFilterGender === gender}
+                      onChange={(e) => setGolferFilterGender(e.target.value)}
+                      className="hidden"
+                    />
+                    <div className={cn(
+                      "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
+                      golferFilterGender === gender ? "border-lime bg-lime/20" : "border-white/20 group-hover:border-white/40"
+                    )}>
+                      {golferFilterGender === gender && <div className="w-1.5 h-1.5 rounded-full bg-lime" />}
+                    </div>
+                    <span className={cn(
+                      "text-sm transition-all",
+                      golferFilterGender === gender ? "text-lime font-bold" : "text-white/40 group-hover:text-white/60"
+                    )}>{gender}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Reset Button */}
+            <button 
+              onClick={() => {
+                setGolferFilterName('');
+                setGolferFilterNationality('전체');
+                setGolferFilterGender('전체');
+              }}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-2 rounded-xl transition-all text-sm opacity-60"
+            >
+              초기화
+            </button>
+          </div>
+
+          <div className="glass rounded-[40px] border border-white/10 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[1400px]">
+                <thead>
+                  <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                    <th className="p-6 font-medium w-16">순번</th>
+                    <th className="p-6 font-medium w-40">골퍼명</th>
+                    <th className="p-6 font-medium w-48">국적 / 생년 / 성별</th>
+                    <th className="p-6 font-medium w-64">대표사진 URL 주소</th>
+                    <th className="p-6 font-medium">명언 (원문 포함)</th>
+                    <th className="p-6 font-medium w-48">출처</th>
+                    <th className="p-6 font-medium w-48">통산 성적</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {filteredGolferQuotes.map((quote, index) => (
+                    <tr key={quote.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors whitespace-nowrap">
+                      <td className="p-6 opacity-40">{index + 1}</td>
+                      <td className="p-6 font-medium">{quote.name}</td>
+                      <td className="p-6 opacity-60">{quote.nationality} / {quote.birthYear} / {quote.gender}</td>
+                      <td className="p-6 opacity-60">
+                        <div className="truncate max-w-[200px]" title={quote.photoUrl}>
+                          {quote.photoUrl}
+                        </div>
+                      </td>
+                      <td className="p-6 opacity-80 truncate max-w-[400px]" title={quote.quote}>{quote.quote}</td>
+                      <td className="p-6 opacity-60 truncate max-w-[200px]" title={quote.source}>{quote.source}</td>
+                      <td className="p-6 opacity-60 truncate max-w-[200px]" title={quote.stats}>{quote.stats}</td>
+                    </tr>
+                  ))}
+                  {filteredGolferQuotes.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-20 text-center opacity-40 serif italic">
+                        검색 결과가 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
