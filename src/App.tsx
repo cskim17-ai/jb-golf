@@ -22,6 +22,7 @@ import {
   setDoc, 
   addDoc, 
   onSnapshot, 
+  getDocs,
   query, 
   orderBy, 
   serverTimestamp,
@@ -127,6 +128,40 @@ export const ExchangeRateProvider = ({ children }: { children: React.ReactNode }
 };
 
 // --- Components ---
+
+// --- Constants ---
+const MAX_FILE_SIZE_MB = 0.7;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const compressImage = (base64Str: string, maxWidth = 1200, maxHeight = 1200, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+  });
+};
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -273,36 +308,47 @@ const GolfCarousel = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => {
-        const d = doc.data() as CoursePricing;
-        return {
-          ...d,
-          rows: d.rows.map(r => ({
-            ...r,
-            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
-          }))
-        };
-      });
+      const data = snapshot.docs
+        .filter(doc => !/^\d+$/.test(doc.id)) // Filter out numeric IDs
+        .map(doc => {
+          const d = doc.data() as CoursePricing;
+          return {
+            ...d,
+            rows: (d.rows || []).map(r => ({
+              ...r,
+              item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+            }))
+          };
+        });
+      // Sort by order
+      data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
     });
     return () => unsubscribePricing();
   }, []);
 
+  const displayCourses = pricingData;
+
   const nextSlide = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % GOLF_COURSES.length);
-  }, []);
+    if (displayCourses.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % displayCourses.length);
+  }, [displayCourses.length]);
 
   const prevSlide = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + GOLF_COURSES.length) % GOLF_COURSES.length);
-  }, []);
+    if (displayCourses.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + displayCourses.length) % displayCourses.length);
+  }, [displayCourses.length]);
 
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || displayCourses.length === 0) return;
     const interval = setInterval(nextSlide, 10000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying, nextSlide]);
+  }, [isAutoPlaying, nextSlide, displayCourses.length]);
 
-  const course = GOLF_COURSES[currentIndex];
+  if (displayCourses.length === 0) return null;
+
+  const coursePricing = displayCourses[currentIndex];
+  const staticCourse = GOLF_COURSES.find(c => c.name === coursePricing.courseName);
 
   return (
     <div className="max-w-7xl w-full relative group">
@@ -322,7 +368,7 @@ const GolfCarousel = () => {
 
       <AnimatePresence mode="wait">
         <motion.div 
-          key={currentIndex}
+          key={coursePricing.id}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -337,36 +383,36 @@ const GolfCarousel = () => {
               <h3 className="text-2xl serif italic text-lime">프리미엄 가이드</h3>
               <div className="h-px w-12 bg-lime/30 mt-2" />
             </div>
-            <div className="space-y-4 flex-1 px-3">
-              {course.fullDescription.map((sentence, idx) => (
-                <div key={idx} className="flex gap-1.5">
-                  <span className="text-lime/40 font-mono text-[11px] mt-1.5 shrink-0">0{idx + 1}</span>
-                  <p className="text-[17px] leading-relaxed opacity-90 font-light">
-                    {sentence}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {(() => {
-              const coursePricing = pricingData.find(p => p.courseName === course.name);
-              const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
-              const travelTimeText = remarksLines[0] || `${course.travelTime} min from KSL`;
-              
-              return (
-                <div className="mt-auto pt-4 border-t border-white/5 px-3">
-                  <div className="flex items-center justify-center text-sm">
-                    <span className="text-lime font-bold">{travelTimeText}</span>
+            <div className="space-y-4 flex-1 px-3 overflow-y-auto custom-scrollbar">
+              {coursePricing.premiumInfo ? (
+                <p className="text-[17px] leading-relaxed opacity-90 font-light whitespace-pre-wrap">
+                  {coursePricing.premiumInfo}
+                </p>
+              ) : (
+                (staticCourse?.fullDescription || []).map((sentence, idx) => (
+                  <div key={idx} className="flex gap-1.5">
+                    <span className="text-lime/40 font-mono text-[11px] mt-1.5 shrink-0">0{idx + 1}</span>
+                    <p className="text-[17px] leading-relaxed opacity-90 font-light">
+                      {sentence}
+                    </p>
                   </div>
-                </div>
-              );
-            })()}
+                ))
+              )}
+            </div>
+            <div className="mt-auto pt-4 border-t border-white/5 px-3">
+              <div className="flex items-center justify-center text-sm">
+                <span className="text-lime font-bold">
+                  {coursePricing.operatingHours ? `운영시간: ${coursePricing.operatingHours}` : (staticCourse ? `${staticCourse.travelTime} min from KSL` : '')}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Center Card: Image with Name & Address */}
           <div className="md:col-span-6 relative rounded-[32px] overflow-hidden h-[500px]">
             <img 
-              src={course.image} 
-              alt={course.name} 
+              src={coursePricing.photoUrl || staticCourse?.image || 'https://picsum.photos/seed/golf/800/600'} 
+              alt={coursePricing.courseName} 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
@@ -376,8 +422,9 @@ const GolfCarousel = () => {
             <div className="absolute top-8 left-8 right-8">
               <h3 className="serif leading-tight mb-2">
                 {(() => {
-                  const match = course.name.match(/^(.*?)\s*\((.*?)\)$/);
-                  const korean = match ? match[1] : course.name;
+                  const name = coursePricing.courseName;
+                  const match = name.match(/^(.*?)\s*\((.*?)\)$/);
+                  const korean = match ? match[1] : name;
                   const english = match ? `(${match[2]})` : '';
                   return (
                     <div className="flex items-baseline gap-3">
@@ -396,10 +443,10 @@ const GolfCarousel = () => {
               <div className="flex items-center gap-3 group/map">
                 <div className="flex items-center gap-2 opacity-80 text-sm">
                   <MapPin size={14} className="text-lime" />
-                  <span className="text-white font-light">{course.address}</span>
+                  <span className="text-white font-light">{coursePricing.address || staticCourse?.address || 'Johor Bahru'}</span>
                 </div>
                 <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + course.address)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coursePricing.courseName + ' ' + (coursePricing.address || staticCourse?.address || ''))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-8 h-8 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
@@ -413,32 +460,29 @@ const GolfCarousel = () => {
             {/* Bottom Tag */}
             <div className="absolute bottom-8 left-8">
               <div className="px-6 py-2 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-xs tracking-widest uppercase font-bold">
-                {filterLabels[course.category]} Collection
+                {coursePricing.category || '기타'} Collection
               </div>
             </div>
           </div>
 
           {/* Right Card: Course Info, Pricing, Promotion */}
           {(() => {
-            const coursePricing = pricingData.find(p => p.courseName === course.name);
-            const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
-            
-            const weekdayRow = coursePricing?.rows.find(r => 
+            const weekdayRow = (coursePricing.rows || []).find(r => 
               (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
               (r.division.includes('주중') || r.division.toLowerCase().includes('week'))
             );
-            const weekendRow = coursePricing?.rows.find(r => 
+            const weekendRow = (coursePricing.rows || []).find(r => 
               (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
               (r.division.includes('주말') || r.division.toLowerCase().includes('end'))
             );
             
-            const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : course.pricing.weekday.morning;
-            const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : course.pricing.weekday.afternoon;
-            const weekendMorning = weekendRow ? Number(weekendRow.morning) : course.pricing.weekend.morning;
-            const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : course.pricing.weekend.afternoon;
+            const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : (staticCourse?.pricing.weekday.morning || 0);
+            const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : (staticCourse?.pricing.weekday.afternoon || 0);
+            const weekendMorning = weekendRow ? Number(weekendRow.morning) : (staticCourse?.pricing.weekend.morning || 0);
+            const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : (staticCourse?.pricing.weekend.afternoon || 0);
             
-            const courseInfoSubText = remarksLines[1] || `${course.difficulty} • ${course.nightGolf ? '야간' : '주간'}`;
-            const promotionSubText = remarksLines[3] || course.promotion || '현재 진행중인 프로모션이 없습니다.';
+            const courseInfoSubText = coursePricing.courseInfo || (staticCourse ? `${staticCourse.difficulty} • ${staticCourse.nightGolf ? '야간' : '주간'}` : '');
+            const promotionSubText = coursePricing.promotionInfo || (staticCourse?.promotion || '현재 진행중인 프로모션이 없습니다.');
 
             return (
                 <div className="md:col-span-3 bg-forest/40 backdrop-blur-md rounded-[32px] p-4 border border-white/10 h-[500px] flex flex-col gap-4">
@@ -448,46 +492,46 @@ const GolfCarousel = () => {
                     <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">코스 정보</h3>
                     <Info size={12} className="text-lime opacity-80" />
                   </div>
-                  <div className="flex items-center justify-center">
-                    <span className="text-sm text-white/90 font-medium">{courseInfoSubText}</span>
-                  </div>
+                  <p className="text-sm opacity-80 font-light">{courseInfoSubText}</p>
                 </div>
 
-                {/* Pricing Info */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex-1 flex flex-col justify-center">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">비용(링깃)</h3>
-                    <Calculator size={14} className="text-lime opacity-80" />
+                {/* Pricing Table */}
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex-grow">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-[14px] font-bold text-lime uppercase tracking-widest">그린피 (RM)</h3>
+                    <div className="px-2 py-0.5 bg-lime/20 rounded text-[10px] text-lime">Best Price</div>
                   </div>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-[13px] text-white/60 font-bold self-end">주중</div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">오전</p>
-                        <p className="text-lg font-bold text-white">RM {weekdayMorning}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">오후</p>
-                        <p className="text-lg font-bold text-white">RM {weekdayAfternoon}</p>
-                      </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                      <span className="opacity-50">주중 오전</span>
+                      <span className="font-bold">RM {weekdayMorning}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-[13px] text-white/60 font-bold self-end">주말/공휴일</div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">오전</p>
-                        <p className="text-lg font-bold text-lime">RM {weekendMorning}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-white/60 font-medium">오후</p>
-                        <p className="text-lg font-bold text-lime">RM {weekendAfternoon}</p>
-                      </div>
+                    <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                      <span className="opacity-50">주중 오후</span>
+                      <span className="font-bold">RM {weekdayAfternoon}</span>
                     </div>
+                    <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                      <span className="opacity-50">주말 오전</span>
+                      <span className="font-bold">RM {weekendMorning}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="opacity-50">주말 오후</span>
+                      <span className="font-bold">RM {weekendAfternoon}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/5">
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest mb-1">캐디 정보</p>
+                    <p className="text-xs opacity-80">{coursePricing.caddyInfo || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : '')}</p>
                   </div>
                 </div>
 
                 {/* Promotion */}
-                <div className="bg-lime/10 rounded-2xl p-4 border border-lime/20 flex items-center justify-center min-h-[70px]">
-                  <p className="text-[14px] text-white font-bold leading-tight text-center">
+                <div className="bg-lime/10 rounded-2xl p-4 border border-lime/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Star size={12} className="text-lime" fill="currentColor" />
+                    <h3 className="text-[12px] font-bold text-lime uppercase tracking-widest">Promotion</h3>
+                  </div>
+                  <p className="text-xs text-lime/90 font-medium leading-relaxed">
                     {promotionSubText}
                   </p>
                 </div>
@@ -497,31 +541,15 @@ const GolfCarousel = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Mobile Navigation */}
-      <div className="flex justify-center gap-4 mt-6 lg:hidden">
-        <button 
-          onClick={() => { prevSlide(); setIsAutoPlaying(false); }}
-          className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <button 
-          onClick={() => { nextSlide(); setIsAutoPlaying(false); }}
-          className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
-      {/* Pagination Dots */}
+      {/* Slide Indicators */}
       <div className="flex justify-center gap-2 mt-8">
-        {GOLF_COURSES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => { setCurrentIndex(i); setIsAutoPlaying(false); }}
+        {displayCourses.map((_, idx) => (
+          <button 
+            key={idx}
+            onClick={() => { setCurrentIndex(idx); setIsAutoPlaying(false); }}
             className={cn(
-              "w-2 h-2 rounded-full transition-all",
-              currentIndex === i ? "bg-lime w-6" : "bg-white/20"
+              "h-1.5 transition-all duration-500 rounded-full",
+              currentIndex === idx ? "w-8 bg-lime" : "w-2 bg-white/20"
             )}
           />
         ))}
@@ -574,16 +602,18 @@ const Golf = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => {
-        const d = doc.data() as CoursePricing;
-        return {
-          ...d,
-          rows: d.rows.map(r => ({
-            ...r,
-            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
-          }))
-        };
-      });
+      const data = snapshot.docs
+        .filter(doc => !/^\d+$/.test(doc.id)) // Filter out numeric IDs
+        .map(doc => {
+          const d = doc.data() as CoursePricing;
+          return {
+            ...d,
+            rows: (d.rows || []).map(r => ({
+              ...r,
+              item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+            }))
+          };
+        });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -595,43 +625,6 @@ const Golf = () => {
 
     return () => unsubscribePricing();
   }, []);
-
-  const sortedCourses = [...GOLF_COURSES].sort((a, b) => {
-    const aPricing = pricingData.find(p => p.courseName === a.name);
-    const bPricing = pricingData.find(p => p.courseName === b.name);
-    return (aPricing?.order ?? 999) - (bPricing?.order ?? 999);
-  });
-
-  const filteredCourses = filter === 'All' 
-    ? sortedCourses 
-    : sortedCourses.filter(c => c.category === filter);
-
-  const extractPromotion = (remarks: string) => {
-    if (!remarks) return null;
-    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
-    // Look for lines containing '프로모션' or '플레이 가능' or starting with '★'
-    const promoLine = lines.find(line => 
-      line.includes('프로모션') || 
-      line.includes('플레이 가능') || 
-      line.startsWith('★') ||
-      line.startsWith('-')
-    );
-    if (promoLine) {
-      return promoLine.replace(/^[★\-\s]+/, '').trim();
-    }
-    return null;
-  };
-
-  const extractCaddyFee = (remarks: string) => {
-    if (!remarks) return null;
-    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
-    // Look for lines containing '캐디'
-    const caddyLine = lines.find(line => line.includes('캐디'));
-    if (caddyLine) {
-      return caddyLine.replace(/^[★\-\s]+/, '').trim();
-    }
-    return null;
-  };
 
   if (loading) return (
     <div className="pt-40 pb-24 px-6 text-center">
@@ -661,59 +654,60 @@ const Golf = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-        {filteredCourses.map((course) => {
-          const coursePricing = pricingData.find(p => p.courseName === course.name);
+        {pricingData
+          .filter(p => filter === 'All' || p.category === (filter === 'Premium' ? '프리미엄' : filter === 'Value' ? '가성비' : '접근성'))
+          .map((coursePricing) => {
+          const staticCourse = GOLF_COURSES.find(c => c.name === coursePricing.courseName);
           
           // Find Green Fee rows with flexible matching for division
-          const weekdayRow = coursePricing?.rows.find(r => 
+          const weekdayRow = (coursePricing.rows || []).find(r => 
             (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
             (r.division.includes('주중') || r.division.toLowerCase().includes('week'))
           );
-          const weekendRow = coursePricing?.rows.find(r => 
+          const weekendRow = (coursePricing.rows || []).find(r => 
             (r.item === '그린피' || r.item.toLowerCase().includes('green')) && 
             (r.division.includes('주말') || r.division.toLowerCase().includes('end'))
           );
           
-          const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : course.pricing.weekday.morning;
-          const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : course.pricing.weekday.afternoon;
-          const weekendMorning = weekendRow ? Number(weekendRow.morning) : course.pricing.weekend.morning;
-          const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : course.pricing.weekend.afternoon;
+          const weekdayMorning = weekdayRow ? Number(weekdayRow.morning) : (staticCourse?.pricing.weekday.morning || 0);
+          const weekdayAfternoon = weekdayRow ? Number(weekdayRow.afternoon) : (staticCourse?.pricing.weekday.afternoon || 0);
+          const weekendMorning = weekendRow ? Number(weekendRow.morning) : (staticCourse?.pricing.weekend.morning || 0);
+          const weekendAfternoon = weekendRow ? Number(weekendRow.afternoon) : (staticCourse?.pricing.weekend.afternoon || 0);
           
-          // Positional remarks extraction
-          const remarksLines = (coursePricing?.remarks || '').split('\n').map(l => l.trim());
+          // New fields from CoursePricing
+          const travelTimeText = coursePricing.operatingHours ? `운영시간: ${coursePricing.operatingHours}` : (staticCourse ? `숙소(KSL)에서 ${staticCourse.travelTime}분 소요` : '');
+          const courseInfoText = coursePricing.courseInfo || (staticCourse ? `${staticCourse.holes}홀 • ${staticCourse.difficulty} 난이도 • ${staticCourse.nightGolf ? '야간 가능' : '주간 전용'}` : '');
+          const promotionText = coursePricing.promotionInfo || (staticCourse?.promotion || '');
+          const caddyInfoText = coursePricing.caddyInfo || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : '');
           
-          // Blue Section: 1st, 2nd, 4th lines
-          const travelTimeText = remarksLines[0] || `숙소(KSL)에서 ${course.travelTime}분 소요`;
-          const courseInfoText = remarksLines[1] || `${course.holes}홀 • ${course.difficulty} 난이도 • ${course.nightGolf ? '야간 가능' : '주간 전용'}`;
-          const promotionText = remarksLines[3] || course.promotion;
-          
-          // Green Section: 3rd line
-          const bottomInfoText = remarksLines[2] || `RM ${course.pricing.caddyFee}`;
+          const photoUrl = coursePricing.photoUrl || staticCourse?.image || 'https://picsum.photos/seed/golf/800/600';
+          const address = coursePricing.address || staticCourse?.address || 'Johor Bahru';
+          const websiteUrl = coursePricing.websiteUrl || staticCourse?.websiteUrl || '#';
 
           return (
             <motion.div 
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              key={course.id} 
+              key={coursePricing.id} 
               className="group flex flex-col h-full"
             >
               <div className="flex-grow">
                 <a 
-                  href={course.websiteUrl} 
+                  href={websiteUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block aspect-[3/4] rounded-[60px] overflow-hidden mb-6 relative border border-white/10"
                 >
-                  <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                  <img src={photoUrl} alt={coursePricing.courseName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                   <div className="absolute top-6 left-6 px-4 py-1 bg-lime text-forest rounded-full text-[10px] tracking-widest uppercase font-bold">
-                    {filterLabels[course.category]}
+                    {coursePricing.category || '기타'}
                   </div>
                 </a>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-2xl serif">{course.name}</h3>
+                  <h3 className="text-2xl serif">{coursePricing.courseName}</h3>
                   <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.name + ' ' + (course.address || 'Johor Bahru'))}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coursePricing.courseName + ' ' + address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full bg-lime text-forest flex items-center justify-center hover:scale-110 transition-transform"
@@ -743,8 +737,8 @@ const Golf = () => {
 
               {/* Detailed Pricing Table - Aligned to bottom */}
               <div className="mt-auto">
-                <div className="glass rounded-2xl p-6 mb-6 text-xs border border-white/10">
-                  <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest">
+                <div className="glass rounded-2xl p-6 mb-6 text-sm border border-white/10">
+                  <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-2 mb-2 opacity-40 uppercase tracking-widest text-[10px]">
                     <span>구분</span>
                     <span>오전</span>
                     <span>오후</span>
@@ -759,8 +753,8 @@ const Golf = () => {
                     <span>RM {weekendMorning}</span>
                     <span>RM {weekendAfternoon}</span>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60">
-                    <span>{bottomInfoText}</span>
+                  <div className="mt-4 pt-4 border-t border-white/10 flex justify-between opacity-60 text-xs">
+                    <span>{caddyInfoText}</span>
                   </div>
                 </div>
 
@@ -858,11 +852,12 @@ const Pricing = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const exchangeRate = useExchangeRate();
 
-  // Helper to get category from GOLF_COURSES
-  const getCourseCategory = (courseName: string) => {
-    const course = GOLF_COURSES.find(c => c.name.includes(courseName) || courseName.includes(c.name));
-    if (!course) return '기타';
-    switch (course.category) {
+  // Helper to get category
+  const getCourseCategory = (course: CoursePricing) => {
+    if (course.category) return course.category;
+    const staticCourse = GOLF_COURSES.find(c => c.name.includes(course.courseName) || course.courseName.includes(c.name));
+    if (!staticCourse) return '기타';
+    switch (staticCourse.category) {
       case 'Premium': return '프리미엄';
       case 'Value': return '가성비';
       case 'Accessibility': return '접근성';
@@ -872,17 +867,19 @@ const Pricing = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => {
-        const d = doc.data() as CoursePricing;
-        return {
-          ...d,
-          category: getCourseCategory(d.courseName),
-          rows: d.rows.map(r => ({
-            ...r,
-            item: r.item.replace(/\s*\(Green Fee\)/gi, '')
-          }))
-        };
-      });
+      const data = snapshot.docs
+        .filter(doc => !/^\d+$/.test(doc.id)) // Filter out numeric IDs
+        .map(doc => {
+          const d = doc.data() as CoursePricing;
+          return {
+            ...d,
+            category: d.category || getCourseCategory(d),
+            rows: (d.rows || []).map(r => ({
+              ...r,
+              item: r.item.replace(/\s*\(Green Fee\)/gi, '')
+            }))
+          };
+        });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -940,40 +937,74 @@ const Pricing = () => {
         {pricingData
           .filter(course => selectedCategory === '전체' || course.category === selectedCategory)
           .map((course) => (
-          <div key={course.id} id={`course-${course.id}`} className="glass rounded-[40px] p-8 border border-white/10 scroll-mt-32">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <h2 className="text-3xl serif">{course.courseName}</h2>
-              {course.remarks && (
-                <p className="text-xs opacity-50 italic max-w-md text-right whitespace-pre-wrap">
-                  * {course.remarks}
-                </p>
-              )}
+          <div key={course.id} id={`course-${course.id}`} className="glass rounded-[40px] p-8 border border-white/10 scroll-mt-32 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+              <div>
+                <h2 className="text-3xl serif mb-2">{course.courseName}</h2>
+                <div className="flex flex-wrap gap-4 text-[10px] tracking-widest uppercase opacity-60 mb-3">
+                  {course.operatingHours && (
+                    <span className="flex items-center gap-1"><Clock size={12} /> {course.operatingHours}</span>
+                  )}
+                  {course.courseInfo && (
+                    <span className="flex items-center gap-1"><Info size={12} /> {course.courseInfo}</span>
+                  )}
+                </div>
+                {course.address && (
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(course.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs opacity-50 hover:opacity-100 hover:text-lime transition-all group"
+                  >
+                    <MapPin size={14} className="group-hover:scale-110 transition-transform" />
+                    <span className="underline underline-offset-4">{course.address}</span>
+                  </a>
+                )}
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
-                    <th className="py-4 font-medium">항목</th>
-                    <th className="py-4 font-medium">구분</th>
-                    <th className="py-4 font-medium text-right">오전 (RM)</th>
-                    <th className="py-4 font-medium text-right">오전 (원)</th>
-                    <th className="py-4 font-medium text-right">오후 (RM)</th>
-                    <th className="py-4 font-medium text-right">오후 (원)</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {course.rows.map((row, idx) => (
-                    <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                      <td className="py-4 font-medium">{row.item}</td>
-                      <td className="py-4 opacity-60">{row.division}</td>
-                      <td className="py-4 text-right font-medium">RM {row.morning}</td>
-                      <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * exchangeRate).toLocaleString()}</td>
-                      <td className="py-4 text-right font-medium">RM {row.afternoon}</td>
-                      <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * exchangeRate).toLocaleString()}</td>
+
+            <div className="mb-8">
+              <div className="flex flex-wrap gap-x-12 gap-y-4 text-sm bg-white/5 p-6 rounded-3xl border border-white/5 mb-8">
+                {course.caddyInfo && (
+                  <div>
+                    <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">캐디 정보</span>
+                    <p>{course.caddyInfo}</p>
+                  </div>
+                )}
+                {course.promotionInfo && (
+                  <div>
+                    <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">프로모션</span>
+                    <p className="text-lime">{course.promotionInfo}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                      <th className="py-4 font-medium">항목</th>
+                      <th className="py-4 font-medium">구분</th>
+                      <th className="py-4 font-medium text-right">오전 (RM)</th>
+                      <th className="py-4 font-medium text-right">오전 (원)</th>
+                      <th className="py-4 font-medium text-right">오후 (RM)</th>
+                      <th className="py-4 font-medium text-right">오후 (원)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm">
+                    {(course.rows || []).map((row, idx) => (
+                      <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="py-4 font-medium">{row.item}</td>
+                        <td className="py-4 opacity-60">{row.division}</td>
+                        <td className="py-4 text-right font-medium">RM {row.morning}</td>
+                        <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * exchangeRate).toLocaleString()}</td>
+                        <td className="py-4 text-right font-medium">RM {row.afternoon}</td>
+                        <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * exchangeRate).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ))}
@@ -1011,7 +1042,15 @@ const Booking = () => {
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      const data = snapshot.docs
+        .filter(doc => !/^\d+$/.test(doc.id)) // Filter out numeric IDs
+        .map(doc => {
+          const d = doc.data() as CoursePricing;
+          return {
+            ...d,
+            rows: d.rows || []
+          };
+        });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -1028,7 +1067,7 @@ const Booking = () => {
     // Check if all selected courses have at least one date selected in each of their schedules
     const allDatesSelected = selectedCourses.every(id => {
       const schedules = options[id] || [];
-      return schedules.length > 0 && schedules.every(s => s.dates && s.dates.length > 0);
+      return schedules.length > 0 && schedules.every(s => (s.dates || []).length > 0);
     });
 
     if (!allDatesSelected) {
@@ -1041,7 +1080,7 @@ const Booking = () => {
 
   const isAllDatesSelected = selectedCourses.length > 0 && selectedCourses.every(id => {
     const schedules = options[id] || [];
-    return schedules.length > 0 && schedules.every(s => s.dates && s.dates.length > 0);
+    return schedules.length > 0 && schedules.every(s => (s.dates || []).length > 0);
   });
 
   const [quoteForm, setQuoteForm] = useState({
@@ -1066,18 +1105,18 @@ const Booking = () => {
   useEffect(() => {
     if (isQuoteModalOpen) {
       const coursesInfo = selectedCourses.map(id => {
-        const course = GOLF_COURSES.find(c => c.id === id);
+        const course = pricingData.find(c => c.id === id);
         const schedules = options[id] || [];
         if (!course || schedules.length === 0) return '';
         
-        const scheduleDetails = schedules.map(opt => {
-          const dateStr = opt.dates?.length > 0 
+        const scheduleDetails = (schedules || []).map(opt => {
+          const dateStr = (opt.dates || []).length > 0 
             ? opt.dates.map(d => format(d, 'MM/dd')).join(', ')
             : '날짜 미선택';
           return `${dateStr} / ${opt.time.toUpperCase()}`;
         }).join('\n');
 
-        return `${course.name}\n${scheduleDetails}`;
+        return `${course.courseName}\n${scheduleDetails}`;
       }).filter(Boolean).join('\n\n');
       
       // Calculate overall travel period from all selected dates
@@ -1096,7 +1135,7 @@ const Booking = () => {
         travel_period: period
       }));
     }
-  }, [isQuoteModalOpen, selectedCourses, options]);
+  }, [isQuoteModalOpen, selectedCourses, options, pricingData]);
 
   const toggleCourse = (id: string) => {
     if (selectedCourses.includes(id)) {
@@ -1195,24 +1234,26 @@ const Booking = () => {
 
   const calculateTotal = () => {
     return selectedCourses.reduce((acc, id) => {
-      const course = GOLF_COURSES.find(c => c.id === id);
+      const course = pricingData.find(c => c.id === id);
       if (!course) return acc;
-      
-      const adminCourse = pricingData.find(c => c.courseName.includes(course.name) || course.name.includes(c.courseName));
       
       const schedules = options[id] || [];
       return acc + schedules.reduce((sAcc, opt) => {
-        let price = course.pricing[opt.day][opt.time];
+        const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
+        const row = (course.rows || []).find(r => (r.item.includes('그린피') || r.item.toLowerCase().includes('green')) && r.division === division);
         
-        if (adminCourse) {
-          const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
-          const row = adminCourse.rows.find(r => r.item.includes('그린피') && r.division === division);
-          if (row) {
-            price = Number(row[opt.time]);
+        let price = 0;
+        if (row) {
+          price = Number(row[opt.time]);
+        } else {
+          // Fallback to static data if not found in Firestore rows
+          const staticCourse = GOLF_COURSES.find(c => c.name === course.courseName);
+          if (staticCourse) {
+            price = staticCourse.pricing[opt.day][opt.time];
           }
         }
         
-        const count = opt.dates?.length || 0;
+        const count = (opt.dates || []).length || 0;
         return sAcc + (price * count);
       }, 0);
     }, 0);
@@ -1257,12 +1298,23 @@ const Booking = () => {
     }
 
     const summary = selectedCourses.map(id => {
-      const course = GOLF_COURSES.find(c => c.id === id);
+      const course = pricingData.find(c => c.id === id);
       const schedules = options[id] || [];
       return schedules.map(opt => {
-        const price = course?.pricing[opt.day][opt.time] || 0;
-        const dateStr = opt.dates?.length > 0 ? opt.dates.map(d => format(d, 'MM/dd')).join(', ') : '날짜 미선택';
-        return `${course?.name} (${dateStr} / ${opt.time}): RM ${price}`;
+        let price = 0;
+        if (course) {
+          const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
+          const row = (course.rows || []).find(r => r.item.includes('그린피') && r.division === division);
+          if (row) {
+            price = Number(row[opt.time]);
+          } else {
+            // Fallback to static if row not found
+            const staticCourse = GOLF_COURSES.find(c => c.name === course.courseName);
+            price = staticCourse?.pricing[opt.day][opt.time] || 0;
+          }
+        }
+        const dateStr = (opt.dates || []).length > 0 ? opt.dates.map(d => format(d, 'MM/dd')).join(', ') : '날짜 미선택';
+        return `${course?.courseName} (${dateStr} / ${opt.time}): RM ${price}`;
       }).join('\n');
     }).join('\n\n');
 
@@ -1357,19 +1409,19 @@ const Booking = () => {
                   className="p-2 bg-[#1a2e1a] border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:border-lime transition-all"
                 >
                   <option value="전체">전체</option>
-                  <option value="Premium">프리미엄</option>
-                  <option value="Value">가성비</option>
-                  <option value="Accessibility">접근성</option>
+                  <option value="프리미엄">프리미엄</option>
+                  <option value="가성비">가성비</option>
+                  <option value="접근성">접근성</option>
                 </select>
 
                 <p className="text-xs tracking-widest uppercase opacity-40">
-                  {selectedCourses.length} / {GOLF_COURSES.length} 선택
+                  {selectedCourses.length} / {pricingData.length} 선택
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {GOLF_COURSES
+              {pricingData
                 .filter(c => selectedCategory === '전체' || c.category === selectedCategory)
                 .map(course => (
                 <button
@@ -1382,8 +1434,8 @@ const Booking = () => {
                       : "glass border-white/10 hover:border-white/30"
                   )}
                 >
-                  <p className="text-lg font-medium">{course.name}</p>
-                  <p className="text-[10px] opacity-40 uppercase mt-1">{filterLabels[course.category]}</p>
+                  <p className="text-lg font-medium">{course.courseName}</p>
+                  <p className="text-[10px] opacity-40 uppercase mt-1">{course.category || '기타'}</p>
                 </button>
               ))}
             </div>
@@ -1394,7 +1446,7 @@ const Booking = () => {
               <h2 className="text-2xl serif mb-6">2. 일정 구성</h2>
               <div className="space-y-8">
                 {selectedCourses.map(id => {
-                  const course = GOLF_COURSES.find(c => c.id === id);
+                  const course = pricingData.find(c => c.id === id);
                   const schedules = options[id] || [];
                   return (
                     <div 
@@ -1405,7 +1457,7 @@ const Booking = () => {
                       )}
                     >
                       <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                        <p className="serif text-xl text-lime">{course?.name}</p>
+                        <p className="serif text-xl text-lime">{course?.courseName}</p>
                         <button 
                           onClick={() => addSchedule(id)}
                           className="flex items-center gap-2 text-[10px] tracking-widest uppercase bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors"
@@ -1519,34 +1571,34 @@ const Booking = () => {
                 <p className="text-sm opacity-40 italic">골프장을 선택하시면 상세 견적이 표시됩니다.</p>
               ) : (
                 selectedCourses.map(id => {
-                  const course = GOLF_COURSES.find(c => c.id === id);
+                  const course = pricingData.find(c => c.id === id);
                   const schedules = options[id] || [];
                   if (!course || schedules.length === 0) return null;
                   
                   return schedules.map(opt => {
-                    let price = course.pricing[opt.day][opt.time];
-                    const adminCourse = pricingData.find(c => c.courseName.includes(course.name) || course.name.includes(c.courseName));
-                    if (adminCourse) {
-                      const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
-                      const row = adminCourse.rows.find(r => r.item.includes('그린피') && r.division === division);
-                      if (row) {
-                        price = Number(row[opt.time]);
-                      }
+                    const division = opt.day === 'weekday' ? '주중' : '주말/공휴일';
+                    const row = (course.rows || []).find(r => r.item.includes('그린피') && r.division === division);
+                    let price = 0;
+                    if (row) {
+                      price = Number(row[opt.time]);
+                    } else {
+                      const staticCourse = GOLF_COURSES.find(c => c.name === course.courseName);
+                      price = staticCourse?.pricing[opt.day][opt.time] || 0;
                     }
                     
                     return (
                       <div key={opt.scheduleId} className="flex justify-between items-start gap-4 mb-4 last:mb-0">
                         <div className="flex-grow">
-                          <p className="font-medium text-sm">{course.name}</p>
+                          <p className="font-medium text-sm">{course.courseName}</p>
                           <p className="text-[10px] opacity-40 uppercase tracking-widest">
-                            {opt.dates?.length > 0 
-                              ? opt.dates.map(d => format(d, 'MM/dd')).join(', ')
+                            {(opt.dates || []).length > 0 
+                              ? (opt.dates || []).map(d => format(d, 'MM/dd')).join(', ')
                               : (opt.day === 'weekday' ? '주중' : '주말/공휴일')} / {opt.time === 'morning' ? '오전' : '오후'}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">RM {price * (opt.dates?.length || 1)}</p>
-                          <p className="text-[10px] opacity-40 italic">₩{(price * (opt.dates?.length || 1) * exchangeRate).toLocaleString()}</p>
+                          <p className="text-sm font-medium">RM {price * ((opt.dates || []).length || 1)}</p>
+                          <p className="text-[10px] opacity-40 italic">₩{(price * ((opt.dates || []).length || 1) * exchangeRate).toLocaleString()}</p>
                         </div>
                       </div>
                     );
@@ -1766,6 +1818,15 @@ interface CoursePricing {
   adminMemo?: string;
   rows: PricingRow[];
   order?: number;
+  // New fields
+  operatingHours?: string;
+  courseInfo?: string;
+  caddyInfo?: string;
+  promotionInfo?: string;
+  premiumInfo?: string;
+  photoUrl?: string;
+  address?: string;
+  websiteUrl?: string;
 }
 
 interface QuoteRequest {
@@ -2024,7 +2085,15 @@ const Admin = () => {
     setLoading(true);
     
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as CoursePricing);
+      const data = snapshot.docs
+        .filter(doc => !/^\d+$/.test(doc.id)) // Filter out numeric IDs
+        .map(doc => {
+          const d = doc.data() as CoursePricing;
+          return {
+            ...d,
+            rows: d.rows || []
+          };
+        });
       // Sort by order field
       data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
       setPricingData(data);
@@ -2159,7 +2228,7 @@ const Admin = () => {
     // Validation
     const isValid = dataToSave.every(course => {
       if (!course.courseName.trim()) return false;
-      return course.rows.every(row => {
+      return (course.rows || []).every(row => {
         // Check if morning/afternoon are empty strings or NaN
         const m = typeof row.morning === 'string' ? row.morning.trim() : row.morning;
         const a = typeof row.afternoon === 'string' ? row.afternoon.trim() : row.afternoon;
@@ -2179,7 +2248,7 @@ const Admin = () => {
     // Convert all values to numbers before saving
     const cleanedData = dataToSave.map(course => ({
       ...course,
-      rows: course.rows.map(row => ({
+      rows: (course.rows || []).map(row => ({
         ...row,
         morning: Number(row.morning),
         afternoon: Number(row.afternoon)
@@ -2193,7 +2262,7 @@ const Admin = () => {
         const cleanedCourse = {
           ...course,
           order: index, // Save current order
-          rows: course.rows.map(row => ({
+          rows: (course.rows || []).map(row => ({
             ...row,
             morning: Number(row.morning),
             afternoon: Number(row.afternoon)
@@ -2215,19 +2284,19 @@ const Admin = () => {
   };
 
   const addCourse = () => {
-    const usedNames = pricingData.map(c => c.courseName);
-    const availableNames = AVAILABLE_GOLF_COURSES.filter(name => !usedNames.includes(name));
-    
-    if (availableNames.length === 0) {
-      showAlert('관리자가 요청한 골프장에 대해 모두 등록하였습니다. 추가할 경우 관리자에게 문의해 주세요');
-      return;
-    }
-
     const newCourse: CoursePricing = {
-      id: Date.now().toString(),
-      courseName: availableNames[0],
+      id: '',
+      courseName: '',
       category: '',
       remarks: '',
+      operatingHours: '',
+      courseInfo: '',
+      caddyInfo: '',
+      promotionInfo: '',
+      premiumInfo: '',
+      photoUrl: '',
+      address: '',
+      websiteUrl: '',
       rows: [
         { item: '그린피', division: '주중', morning: 0, afternoon: 0 },
         { item: '그린피', division: '주말/공휴일', morning: 0, afternoon: 0 },
@@ -2237,6 +2306,139 @@ const Admin = () => {
       order: pricingData.length
     };
     setPricingData([...pricingData, newCourse]);
+  };
+
+  const extractPromotion = (remarks: string) => {
+    if (!remarks) return null;
+    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
+    const promoLine = lines.find(line => 
+      line.includes('프로모션') || 
+      line.includes('플레이 가능') || 
+      line.startsWith('★') ||
+      line.startsWith('-')
+    );
+    if (promoLine) {
+      return promoLine.replace(/^[★\-\s]+/, '').trim();
+    }
+    return null;
+  };
+
+  const extractCaddyFee = (remarks: string) => {
+    if (!remarks) return null;
+    const lines = remarks.split('\n').map(l => l.trim()).filter(Boolean);
+    const caddyLine = lines.find(line => line.includes('캐디'));
+    if (caddyLine) {
+      return caddyLine.replace(/^[★\-\s]+/, '').trim();
+    }
+    return null;
+  };
+
+  const runMigration = async () => {
+    showConfirm('기존 숫자 ID 문서들의 모든 필드를 영문 ID 문서로 동기화하시겠습니까? (기존 데이터와 정적 데이터를 참조하여 필드가 업데이트됩니다)', async () => {
+      try {
+        setIsSaving(true);
+        const mapping: Record<string, string> = {
+          '포레스트 시티 (Forest City)': 'forest-city',
+          '탄중푸테리 CC (Tanjung Puteri)': 'tanjung-puteri',
+          '호라이즌힐스 골프 (Horizon Hills)': 'horizon-hills',
+          '폰데로사 골프 (Ponderosa)': 'ponderosa',
+          '오스틴하이츠 골프 (Austin Heights)': 'austin-heights',
+          '스타힐 CC (Starhill)': 'starhill',
+          '다이만18CC (Daiman 18)': 'daiman18',
+          '임피안에마스 (Impian Emas)': 'impian-emas',
+          '퍼마스 자야 골프클럽 (Permas Jaya)': 'permas-jaya',
+          'IOI 팜 빌라 (IOI Palm Villa)': 'ioi-palm-villa',
+          '세니봉 (Senibong)': 'senibong'
+        };
+
+        const pricingRef = collection(db, 'pricing');
+        const snapshot = await getDocs(pricingRef);
+        
+        const numericDocs = snapshot.docs.filter(doc => /^\d+$/.test(doc.id));
+        const numericDataMap: Record<string, any> = {};
+        
+        numericDocs.forEach(doc => {
+          const data = doc.data();
+          numericDataMap[data.courseName] = data;
+        });
+
+        let count = 0;
+        // Process English documents to ensure they have all fields
+        for (const docSnap of snapshot.docs) {
+          const currentId = docSnap.id;
+          const isNumeric = /^\d+$/.test(currentId);
+          
+          if (!isNumeric) {
+            const currentData = docSnap.data() as CoursePricing;
+            const sourceData = numericDataMap[currentData.courseName];
+            const staticCourse = GOLF_COURSES.find(c => c.name === currentData.courseName);
+            
+            // Prepare updated data with all fields
+            const updatedData: CoursePricing = {
+              ...currentData,
+              // Update from numeric source if available
+              ...(sourceData || {}),
+              // Ensure ID remains the English one
+              id: currentId,
+              // Sync/Extract fields
+              operatingHours: currentData.operatingHours || sourceData?.operatingHours || (staticCourse ? '07:00 ~ 19:00' : ''),
+              courseInfo: currentData.courseInfo || sourceData?.courseInfo || (staticCourse ? `${staticCourse.holes}홀 • ${staticCourse.difficulty} 난이도` : ''),
+              caddyInfo: currentData.caddyInfo || sourceData?.caddyInfo || extractCaddyFee(sourceData?.remarks || currentData.remarks) || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : ''),
+              promotionInfo: currentData.promotionInfo || sourceData?.promotionInfo || extractPromotion(sourceData?.remarks || currentData.remarks) || (staticCourse?.promotion || ''),
+              premiumInfo: currentData.premiumInfo || sourceData?.premiumInfo || (staticCourse?.fullDescription?.join('\n') || ''),
+              photoUrl: currentData.photoUrl || sourceData?.photoUrl || (staticCourse?.image || ''),
+              address: currentData.address || sourceData?.address || (staticCourse?.address || ''),
+              websiteUrl: currentData.websiteUrl || sourceData?.websiteUrl || (staticCourse?.websiteUrl || ''),
+              adminMemo: currentData.adminMemo || sourceData?.adminMemo || '',
+              category: currentData.category || sourceData?.category || (staticCourse ? (staticCourse.category === 'Premium' ? '프리미엄' : staticCourse.category === 'Value' ? '가성비' : '접근성') : ''),
+              remarks: currentData.remarks || sourceData?.remarks || '',
+              order: currentData.order !== undefined ? currentData.order : (sourceData?.order !== undefined ? sourceData.order : 999)
+            };
+
+            await setDoc(doc(db, 'pricing', currentId), updatedData);
+            count++;
+          }
+        }
+        
+        // Also check if any numeric docs don't have an English doc yet
+        for (const courseName in numericDataMap) {
+          const englishId = mapping[courseName];
+          if (englishId) {
+            const englishDoc = snapshot.docs.find(d => d.id === englishId);
+            if (!englishDoc) {
+              const sourceData = numericDataMap[courseName];
+              const staticCourse = GOLF_COURSES.find(c => c.name === courseName);
+              
+              const newData: CoursePricing = {
+                ...sourceData,
+                id: englishId,
+                operatingHours: sourceData.operatingHours || (staticCourse ? '07:00 ~ 19:00' : ''),
+                courseInfo: sourceData.courseInfo || (staticCourse ? `${staticCourse.holes}홀 • ${staticCourse.difficulty} 난이도` : ''),
+                caddyInfo: sourceData.caddyInfo || extractCaddyFee(sourceData.remarks) || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : ''),
+                promotionInfo: sourceData.promotionInfo || extractPromotion(sourceData.remarks) || (staticCourse?.promotion || ''),
+                premiumInfo: sourceData.premiumInfo || (staticCourse?.fullDescription?.join('\n') || ''),
+                photoUrl: sourceData.photoUrl || (staticCourse.image || ''),
+                address: sourceData.address || (staticCourse.address || ''),
+                websiteUrl: sourceData.websiteUrl || (staticCourse.websiteUrl || ''),
+                adminMemo: sourceData.adminMemo || '',
+                category: sourceData.category || (staticCourse ? (staticCourse.category === 'Premium' ? '프리미엄' : staticCourse.category === 'Value' ? '가성비' : '접근성') : ''),
+                remarks: sourceData.remarks || '',
+                order: sourceData.order !== undefined ? sourceData.order : 999
+              };
+              await setDoc(doc(db, 'pricing', englishId), newData);
+              count++;
+            }
+          }
+        }
+        
+        showAlert(`${count}개의 영문 ID 문서가 업데이트/생성되었습니다. 모든 필드가 동기화 및 보완되었습니다.`);
+      } catch (error) {
+        console.error("Migration error:", error);
+        showAlert('마이그레이션 중 오류가 발생했습니다.');
+      } finally {
+        setIsSaving(false);
+      }
+    });
   };
 
   const removeCourse = (id: string) => {
@@ -2299,7 +2501,7 @@ const Admin = () => {
     }));
   };
 
-  const updateCourseField = (id: string, field: 'courseName' | 'remarks' | 'adminMemo' | 'category', value: string) => {
+  const updateCourseField = (id: string, field: keyof CoursePricing, value: string) => {
     setPricingData(pricingData.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
@@ -2371,7 +2573,7 @@ const Admin = () => {
                 activeTab === 'pricing' ? "text-lime border-lime" : "text-white/40 border-transparent hover:text-white/60"
               )}
             >
-              골프장 가격정보
+              골프장 정보
             </button>
             <button 
               onClick={() => setActiveTab('quotes')}
@@ -2430,6 +2632,13 @@ const Admin = () => {
                 <Send size={18} />
               )}
               {isSaving ? '저장 중...' : '저장하기'}
+            </button>
+            <button 
+              onClick={runMigration}
+              disabled={isSaving}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all text-xs opacity-60"
+            >
+              데이터 ID 정리
             </button>
           </div>
         )}
@@ -2542,40 +2751,162 @@ const Admin = () => {
                       <option value="접근성" className="bg-forest text-white">접근성</option>
                     </select>
                   </div>
-                  <div className="max-w-xl">
-                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">골프장명</label>
-                    <select 
-                      value={course.courseName}
-                      onChange={(e) => updateCourseField(course.id, 'courseName', e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl serif w-full focus:border-lime outline-none transition-all appearance-none"
-                    >
-                      {AVAILABLE_GOLF_COURSES.map(name => {
-                        const isUsed = pricingData.some(c => c.courseName === name && c.id !== course.id);
-                        if (isUsed) return null;
-                        return <option key={name} value={name} className="bg-forest text-white">{name}</option>;
-                      })}
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">문서 ID (영문)</label>
+                      <input 
+                        type="text"
+                        value={course.id}
+                        onChange={(e) => updateCourseField(course.id, 'id', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="예: forest-city"
+                        disabled={pricingData.some(p => p.id === course.id && p !== course)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">골프장명</label>
+                      <select 
+                        value={course.courseName}
+                        onChange={(e) => updateCourseField(course.id, 'courseName', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl serif w-full focus:border-lime outline-none transition-all appearance-none"
+                      >
+                        <option value="" className="bg-forest text-white">골프장 선택</option>
+                        {[...new Set(GOLF_COURSES.map(c => c.name))].sort().map(name => (
+                          <option key={name} value={name} className="bg-forest text-white">{name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="max-w-2xl">
-                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">비고 (골프장 공통)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">운영시간</label>
+                      <input 
+                        type="text"
+                        value={course.operatingHours || ''}
+                        onChange={(e) => updateCourseField(course.id, 'operatingHours', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="예: 07:00 ~ 19:00"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">코스 정보</label>
+                      <input 
+                        type="text"
+                        value={course.courseInfo || ''}
+                        onChange={(e) => updateCourseField(course.id, 'courseInfo', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="예: 18홀 / 파 72"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">캐디 정보</label>
+                      <input 
+                        type="text"
+                        value={course.caddyInfo || ''}
+                        onChange={(e) => updateCourseField(course.id, 'caddyInfo', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="예: 1인 1캐디 / 캐디피 별도"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">프로모션 정보</label>
+                      <input 
+                        type="text"
+                        value={course.promotionInfo || ''}
+                        onChange={(e) => updateCourseField(course.id, 'promotionInfo', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="예: 평일 레이디 할인"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-w-4xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">홈화면 프리미엄 정보 (500자 이상 입력 가능)</label>
                     <textarea 
-                      value={course.remarks || ''}
-                      onChange={(e) => updateCourseField(course.id, 'remarks', e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all resize-none overflow-hidden min-h-[60px]"
-                      placeholder="골프장 관련 공통 비고 내용을 입력하세요"
-                      rows={Math.max(2, (course.remarks || '').split('\n').length)}
-                      onFocus={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = target.scrollHeight + 'px';
-                      }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = target.scrollHeight + 'px';
-                      }}
+                      value={course.premiumInfo || ''}
+                      onChange={(e) => updateCourseField(course.id, 'premiumInfo', e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all min-h-[120px]"
+                      placeholder="홈페이지 메인 프리미엄 섹션에 노출될 상세 설명을 입력하세요"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">골프장 주소</label>
+                      <input 
+                        type="text"
+                        value={course.address || ''}
+                        onChange={(e) => updateCourseField(course.id, 'address', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="골프장 위치 주소를 입력하세요"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">홈페이지 주소</label>
+                      <input 
+                        type="text"
+                        value={course.websiteUrl || ''}
+                        onChange={(e) => updateCourseField(course.id, 'websiteUrl', e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-w-4xl">
+                    <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2 font-bold">
+                      골프장 메인 사진 <span className="text-lime/60 ml-2">(최대 {MAX_FILE_SIZE_MB * 1000}KB)</span>
+                    </label>
+                    <div className="flex flex-col md:flex-row gap-4 items-start">
+                      <div className="flex-grow w-full">
+                        <input 
+                          type="text"
+                          value={course.photoUrl || ''}
+                          onChange={(e) => updateCourseField(course.id, 'photoUrl', e.target.value)}
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm w-full focus:border-lime outline-none transition-all mb-2"
+                          placeholder="이미지 URL을 입력하거나 파일을 업로드하세요"
+                        />
+                        <div className="relative">
+                          <input 
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > MAX_FILE_SIZE_BYTES) {
+                                  showAlert(`이미지 용량이 너무 큽니다. (${MAX_FILE_SIZE_MB * 1000}KB 이하만 가능합니다)`);
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onloadend = async () => {
+                                  const compressed = await compressImage(reader.result as string);
+                                  updateCourseField(course.id, 'photoUrl', compressed);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <button className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-2 rounded-xl transition-all text-sm flex items-center gap-2">
+                            <ImageIcon size={18} />
+                            사진 업로드
+                          </button>
+                        </div>
+                      </div>
+                      {course.photoUrl && (
+                        <div className="relative w-40 h-24 rounded-xl overflow-hidden border border-white/10 group flex-shrink-0">
+                          <img src={course.photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                          <button 
+                            onClick={() => updateCourseField(course.id, 'photoUrl', '')}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="max-w-2xl">
                     <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">관리자 메모 (비공개)</label>
                     <textarea 
@@ -2618,7 +2949,7 @@ const Admin = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {course.rows.map((row, idx) => (
+                    {(course.rows || []).map((row, idx) => (
                       <tr key={idx} className="border-b border-white/5 last:border-none hover:bg-white/[0.02] transition-colors">
                         <td className="py-2 px-3">
                           <select 
@@ -2745,7 +3076,9 @@ const Admin = () => {
               </div>
 
               <div>
-                <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">이미지 첨부 (URL 또는 파일)</label>
+                <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-2 ml-2">
+                  이미지 첨부 (URL 또는 파일) <span className="text-lime/60 ml-2">(최대 {MAX_FILE_SIZE_MB * 1000}KB)</span>
+                </label>
                 <div className="flex flex-col md:flex-row gap-4">
                   <input 
                     type="text"
@@ -2761,13 +3094,14 @@ const Admin = () => {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 800000) { // 800KB limit for Firestore doc size safety
-                            showAlert('이미지 용량이 너무 큽니다. (800KB 이하 권장)');
+                          if (file.size > MAX_FILE_SIZE_BYTES) { // 800KB limit for Firestore doc size safety
+                            showAlert(`이미지 용량이 너무 큽니다. (${MAX_FILE_SIZE_MB * 1000}KB 이하만 가능합니다)`);
                             return;
                           }
                           const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setNewNotice({ ...newNotice, imageUrl: reader.result as string });
+                          reader.onloadend = async () => {
+                            const compressed = await compressImage(reader.result as string);
+                            setNewNotice({ ...newNotice, imageUrl: compressed });
                           };
                           reader.readAsDataURL(file);
                         }

@@ -10,12 +10,21 @@
         "category": { "type": "string" },
         "remarks": { "type": "string" },
         "adminMemo": { "type": "string" },
+        "operatingHours": { "type": "string" },
+        "courseInfo": { "type": "string" },
+        "caddyInfo": { "type": "string" },
+        "promotionInfo": { "type": "string" },
+        "premiumInfo": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "address": { "type": "string" },
+        "websiteUrl": { "type": "string" },
+        "order": { "type": "number" },
         "rows": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "day": { "type": "string" },
+              "item": { "type": "string" },
               "division": { "type": "string" },
               "morning": { "type": "string" },
               "afternoon": { "type": "string" }
