@@ -527,13 +527,12 @@ const GolfCarousel = () => {
 
                 {/* Promotion */}
                 <div className="bg-lime/10 rounded-2xl p-4 border border-lime/20">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Star size={12} className="text-lime" fill="currentColor" />
-                    <h3 className="text-[12px] font-bold text-lime uppercase tracking-widest">Promotion</h3>
+                  <div className="flex items-center gap-2">
+                    <Star size={14} className="text-lime shrink-0" fill="currentColor" />
+                    <p className="text-sm text-lime font-bold leading-relaxed">
+                      {promotionSubText}
+                    </p>
                   </div>
-                  <p className="text-xs text-lime/90 font-medium leading-relaxed">
-                    {promotionSubText}
-                  </p>
                 </div>
               </div>
             );
@@ -961,28 +960,30 @@ const Pricing = () => {
                   </a>
                 )}
               </div>
+              
+              {(course.caddyInfo || course.promotionInfo) && (
+                <div className="flex flex-wrap gap-x-12 gap-y-4 text-sm bg-white/5 px-6 py-4 rounded-3xl border border-white/5 w-full md:w-auto">
+                  {course.caddyInfo && (
+                    <div>
+                      <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">캐디 정보</span>
+                      <p className="font-medium">{course.caddyInfo}</p>
+                    </div>
+                  )}
+                  {course.promotionInfo && (
+                    <div>
+                      <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">프로모션</span>
+                      <p className="text-lime font-medium">{course.promotionInfo}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mb-8">
-              <div className="flex flex-wrap gap-x-12 gap-y-4 text-sm bg-white/5 p-6 rounded-3xl border border-white/5 mb-8">
-                {course.caddyInfo && (
-                  <div>
-                    <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">캐디 정보</span>
-                    <p>{course.caddyInfo}</p>
-                  </div>
-                )}
-                {course.promotionInfo && (
-                  <div>
-                    <span className="block opacity-40 text-[10px] uppercase mb-1 font-bold tracking-widest">프로모션</span>
-                    <p className="text-lime">{course.promotionInfo}</p>
-                  </div>
-                )}
-              </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/10 text-[10px] tracking-widest uppercase opacity-40">
+                    <tr className="border-b border-white/10 text-xs tracking-widest uppercase opacity-40">
                       <th className="py-4 font-medium">항목</th>
                       <th className="py-4 font-medium">구분</th>
                       <th className="py-4 font-medium text-right">오전 (RM)</th>
@@ -991,15 +992,15 @@ const Pricing = () => {
                       <th className="py-4 font-medium text-right">오후 (원)</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
+                  <tbody className="text-lg">
                     {(course.rows || []).map((row, idx) => (
                       <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 font-medium">{row.item}</td>
-                        <td className="py-4 opacity-60">{row.division}</td>
-                        <td className="py-4 text-right font-medium">RM {row.morning}</td>
-                        <td className="py-4 text-right opacity-60">₩{(Number(row.morning) * exchangeRate).toLocaleString()}</td>
-                        <td className="py-4 text-right font-medium">RM {row.afternoon}</td>
-                        <td className="py-4 text-right opacity-60">₩{(Number(row.afternoon) * exchangeRate).toLocaleString()}</td>
+                        <td className="py-6 font-bold">{row.item}</td>
+                        <td className="py-6 opacity-80">{row.division}</td>
+                        <td className="py-6 text-right font-bold">RM {row.morning}</td>
+                        <td className="py-6 text-right opacity-80">₩{(Number(row.morning) * exchangeRate).toLocaleString()}</td>
+                        <td className="py-6 text-right font-bold">RM {row.afternoon}</td>
+                        <td className="py-6 text-right opacity-80">₩{(Number(row.afternoon) * exchangeRate).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1568,7 +1569,7 @@ const Booking = () => {
             
             <div className="space-y-6 mb-8 pr-2 custom-scrollbar">
               {selectedCourses.length === 0 ? (
-                <p className="text-sm opacity-40 italic">골프장을 선택하시면 상세 견적이 표시됩니다.</p>
+                <p className="text-base opacity-40 italic">골프장을 선택하시면 상세 견적이 표시됩니다.</p>
               ) : (
                 selectedCourses.map(id => {
                   const course = pricingData.find(c => c.id === id);
@@ -1589,16 +1590,16 @@ const Booking = () => {
                     return (
                       <div key={opt.scheduleId} className="flex justify-between items-start gap-4 mb-4 last:mb-0">
                         <div className="flex-grow">
-                          <p className="font-medium text-sm">{course.courseName}</p>
-                          <p className="text-[10px] opacity-40 uppercase tracking-widest">
+                          <p className="font-medium text-base">{course.courseName}</p>
+                          <p className="text-xs opacity-40 uppercase tracking-widest">
                             {(opt.dates || []).length > 0 
                               ? (opt.dates || []).map(d => format(d, 'MM/dd')).join(', ')
                               : (opt.day === 'weekday' ? '주중' : '주말/공휴일')} / {opt.time === 'morning' ? '오전' : '오후'}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">RM {price * ((opt.dates || []).length || 1)}</p>
-                          <p className="text-[10px] opacity-40 italic">₩{(price * ((opt.dates || []).length || 1) * exchangeRate).toLocaleString()}</p>
+                          <p className="text-base font-medium">RM {price * ((opt.dates || []).length || 1)}</p>
+                          <p className="text-xs opacity-40 italic">₩{(price * ((opt.dates || []).length || 1) * exchangeRate).toLocaleString()}</p>
                         </div>
                       </div>
                     );
@@ -1609,16 +1610,16 @@ const Booking = () => {
 
             <div className="border-t-2 border-dashed border-white/10 pt-6 space-y-4">
               <div className="flex justify-between items-center">
-                <p className="text-xs tracking-widest uppercase opacity-40">합계(링깃)</p>
-                <p className="text-xl serif">RM {totalMYR}</p>
+                <p className="text-sm tracking-widest uppercase opacity-40">합계(링깃)</p>
+                <p className="text-2xl serif">RM {totalMYR}</p>
               </div>
               <div className="flex justify-between items-center text-lime">
-                <p className="text-xs tracking-widest uppercase font-bold">총 예상 비용(원)</p>
-                <p className="text-3xl serif font-bold">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
+                <p className="text-sm tracking-widest uppercase font-bold">총 예상 비용(원)</p>
+                <p className="text-4xl serif font-bold">₩{(totalMYR * exchangeRate).toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="mt-10 p-4 bg-white/5 rounded-2xl text-[10px] opacity-60 leading-relaxed">
+            <div className="mt-10 p-4 bg-white/5 rounded-2xl text-xs opacity-60 leading-relaxed">
               <p>• 위 견적은 선택하신 골프장과 스케줄에 따른 예상 금액입니다.</p>
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
               <p>• 상세 예약 확정은 이메일 문의를 통해 진행해 주세요.</p>
@@ -1628,7 +1629,7 @@ const Booking = () => {
               onClick={handleOpenQuoteModal}
               disabled={!isAllDatesSelected}
               className={cn(
-                "mt-6 w-full py-4 rounded-2xl font-bold tracking-widest uppercase text-xs transition-all flex items-center justify-center gap-2",
+                "mt-6 w-full py-4 rounded-2xl font-bold tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2",
                 isAllDatesSelected
                   ? "bg-lime text-forest hover:shadow-[0_0_30px_rgba(163,230,53,0.3)]"
                   : "bg-white/10 text-white/20 cursor-not-allowed"
@@ -2333,114 +2334,6 @@ const Admin = () => {
     return null;
   };
 
-  const runMigration = async () => {
-    showConfirm('기존 숫자 ID 문서들의 모든 필드를 영문 ID 문서로 동기화하시겠습니까? (기존 데이터와 정적 데이터를 참조하여 필드가 업데이트됩니다)', async () => {
-      try {
-        setIsSaving(true);
-        const mapping: Record<string, string> = {
-          '포레스트 시티 (Forest City)': 'forest-city',
-          '탄중푸테리 CC (Tanjung Puteri)': 'tanjung-puteri',
-          '호라이즌힐스 골프 (Horizon Hills)': 'horizon-hills',
-          '폰데로사 골프 (Ponderosa)': 'ponderosa',
-          '오스틴하이츠 골프 (Austin Heights)': 'austin-heights',
-          '스타힐 CC (Starhill)': 'starhill',
-          '다이만18CC (Daiman 18)': 'daiman18',
-          '임피안에마스 (Impian Emas)': 'impian-emas',
-          '퍼마스 자야 골프클럽 (Permas Jaya)': 'permas-jaya',
-          'IOI 팜 빌라 (IOI Palm Villa)': 'ioi-palm-villa',
-          '세니봉 (Senibong)': 'senibong'
-        };
-
-        const pricingRef = collection(db, 'pricing');
-        const snapshot = await getDocs(pricingRef);
-        
-        const numericDocs = snapshot.docs.filter(doc => /^\d+$/.test(doc.id));
-        const numericDataMap: Record<string, any> = {};
-        
-        numericDocs.forEach(doc => {
-          const data = doc.data();
-          numericDataMap[data.courseName] = data;
-        });
-
-        let count = 0;
-        // Process English documents to ensure they have all fields
-        for (const docSnap of snapshot.docs) {
-          const currentId = docSnap.id;
-          const isNumeric = /^\d+$/.test(currentId);
-          
-          if (!isNumeric) {
-            const currentData = docSnap.data() as CoursePricing;
-            const sourceData = numericDataMap[currentData.courseName];
-            const staticCourse = GOLF_COURSES.find(c => c.name === currentData.courseName);
-            
-            // Prepare updated data with all fields
-            const updatedData: CoursePricing = {
-              ...currentData,
-              // Update from numeric source if available
-              ...(sourceData || {}),
-              // Ensure ID remains the English one
-              id: currentId,
-              // Sync/Extract fields
-              operatingHours: currentData.operatingHours || sourceData?.operatingHours || (staticCourse ? '07:00 ~ 19:00' : ''),
-              courseInfo: currentData.courseInfo || sourceData?.courseInfo || (staticCourse ? `${staticCourse.holes}홀 • ${staticCourse.difficulty} 난이도` : ''),
-              caddyInfo: currentData.caddyInfo || sourceData?.caddyInfo || extractCaddyFee(sourceData?.remarks || currentData.remarks) || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : ''),
-              promotionInfo: currentData.promotionInfo || sourceData?.promotionInfo || extractPromotion(sourceData?.remarks || currentData.remarks) || (staticCourse?.promotion || ''),
-              premiumInfo: currentData.premiumInfo || sourceData?.premiumInfo || (staticCourse?.fullDescription?.join('\n') || ''),
-              photoUrl: currentData.photoUrl || sourceData?.photoUrl || (staticCourse?.image || ''),
-              address: currentData.address || sourceData?.address || (staticCourse?.address || ''),
-              websiteUrl: currentData.websiteUrl || sourceData?.websiteUrl || (staticCourse?.websiteUrl || ''),
-              adminMemo: currentData.adminMemo || sourceData?.adminMemo || '',
-              category: currentData.category || sourceData?.category || (staticCourse ? (staticCourse.category === 'Premium' ? '프리미엄' : staticCourse.category === 'Value' ? '가성비' : '접근성') : ''),
-              remarks: currentData.remarks || sourceData?.remarks || '',
-              order: currentData.order !== undefined ? currentData.order : (sourceData?.order !== undefined ? sourceData.order : 999)
-            };
-
-            await setDoc(doc(db, 'pricing', currentId), updatedData);
-            count++;
-          }
-        }
-        
-        // Also check if any numeric docs don't have an English doc yet
-        for (const courseName in numericDataMap) {
-          const englishId = mapping[courseName];
-          if (englishId) {
-            const englishDoc = snapshot.docs.find(d => d.id === englishId);
-            if (!englishDoc) {
-              const sourceData = numericDataMap[courseName];
-              const staticCourse = GOLF_COURSES.find(c => c.name === courseName);
-              
-              const newData: CoursePricing = {
-                ...sourceData,
-                id: englishId,
-                operatingHours: sourceData.operatingHours || (staticCourse ? '07:00 ~ 19:00' : ''),
-                courseInfo: sourceData.courseInfo || (staticCourse ? `${staticCourse.holes}홀 • ${staticCourse.difficulty} 난이도` : ''),
-                caddyInfo: sourceData.caddyInfo || extractCaddyFee(sourceData.remarks) || (staticCourse ? `RM ${staticCourse.pricing.caddyFee}` : ''),
-                promotionInfo: sourceData.promotionInfo || extractPromotion(sourceData.remarks) || (staticCourse?.promotion || ''),
-                premiumInfo: sourceData.premiumInfo || (staticCourse?.fullDescription?.join('\n') || ''),
-                photoUrl: sourceData.photoUrl || (staticCourse.image || ''),
-                address: sourceData.address || (staticCourse.address || ''),
-                websiteUrl: sourceData.websiteUrl || (staticCourse.websiteUrl || ''),
-                adminMemo: sourceData.adminMemo || '',
-                category: sourceData.category || (staticCourse ? (staticCourse.category === 'Premium' ? '프리미엄' : staticCourse.category === 'Value' ? '가성비' : '접근성') : ''),
-                remarks: sourceData.remarks || '',
-                order: sourceData.order !== undefined ? sourceData.order : 999
-              };
-              await setDoc(doc(db, 'pricing', englishId), newData);
-              count++;
-            }
-          }
-        }
-        
-        showAlert(`${count}개의 영문 ID 문서가 업데이트/생성되었습니다. 모든 필드가 동기화 및 보완되었습니다.`);
-      } catch (error) {
-        console.error("Migration error:", error);
-        showAlert('마이그레이션 중 오류가 발생했습니다.');
-      } finally {
-        setIsSaving(false);
-      }
-    });
-  };
-
   const removeCourse = (id: string) => {
     showConfirm('삭제하시겠습니까?', () => {
       const newData = pricingData.filter(c => c.id !== id);
@@ -2556,8 +2449,9 @@ const Admin = () => {
 
   return (
     <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-        <div>
+      <div className="sticky top-0 z-40 bg-forest/80 backdrop-blur-md py-6 mb-12 -mx-6 px-6 border-b border-white/5">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
           <div className="flex items-center gap-4 mt-2">
             {activeTab === 'pricing' && user && (
               <p className="text-xs opacity-40">
@@ -2603,6 +2497,37 @@ const Admin = () => {
               골퍼 명언 모음
             </button>
           </div>
+          {activeTab === 'pricing' && user && (
+            <div className="mt-4 flex items-center gap-3">
+              <div className="relative">
+                <select 
+                  onChange={(e) => {
+                    const element = document.getElementById(`course-${e.target.value}`);
+                    if (element) {
+                      const offset = 180; 
+                      const elementPosition = element.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.pageYOffset - offset;
+                      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                      element.classList.add('ring-2', 'ring-lime');
+                      setTimeout(() => element.classList.remove('ring-2', 'ring-lime'), 3000);
+                    }
+                  }}
+                  className="bg-white/5 border border-lime/20 rounded-xl px-4 py-2 focus:border-lime outline-none transition-all appearance-none text-white text-xs min-w-[320px] pr-10"
+                >
+                  <option value="" className="bg-forest">골프장 빠른 조회</option>
+                  {pricingData.map(course => (
+                    <option key={course.id} value={course.id} className="bg-forest">
+                      {course.courseName || '이름 없음'} ({course.id})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                  <Search size={14} />
+                </div>
+              </div>
+              <span className="text-[10px] opacity-40 italic">총 {pricingData.length}개 등록됨</span>
+            </div>
+          )}
         </div>
         {activeTab === 'pricing' && user && (
           <div className="flex gap-4">
@@ -2633,13 +2558,6 @@ const Admin = () => {
               )}
               {isSaving ? '저장 중...' : '저장하기'}
             </button>
-            <button 
-              onClick={runMigration}
-              disabled={isSaving}
-              className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-full flex items-center gap-2 transition-all text-xs opacity-60"
-            >
-              데이터 ID 정리
-            </button>
           </div>
         )}
         {activeTab === 'quotes' && user && (
@@ -2653,6 +2571,7 @@ const Admin = () => {
           </div>
         )}
       </div>
+    </div>
 
       {!user && !isPasswordVerified && (
         <div className="flex flex-col items-center justify-center min-h-[40vh]">
@@ -2718,7 +2637,7 @@ const Admin = () => {
             </div>
           ) : (
             pricingData.map((course, index) => (
-            <div key={course.id} className="glass p-6 rounded-[40px] border border-white/10 overflow-hidden relative group">
+            <div key={course.id} id={`course-${course.id}`} className="glass p-6 rounded-[40px] border border-white/10 overflow-hidden relative group transition-all duration-500">
               <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={() => moveCourse(index, 'up')}
@@ -2764,17 +2683,14 @@ const Admin = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2">골프장명</label>
-                      <select 
-                        value={course.courseName}
+                      <label className="text-[10px] tracking-widest uppercase opacity-40 block mb-1 ml-2 font-bold">골프장명</label>
+                      <input 
+                        type="text"
+                        value={course.courseName || ''}
                         onChange={(e) => updateCourseField(course.id, 'courseName', e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl serif w-full focus:border-lime outline-none transition-all appearance-none"
-                      >
-                        <option value="" className="bg-forest text-white">골프장 선택</option>
-                        {[...new Set(GOLF_COURSES.map(c => c.name))].sort().map(name => (
-                          <option key={name} value={name} className="bg-forest text-white">{name}</option>
-                        ))}
-                      </select>
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl serif w-full focus:border-lime outline-none transition-all"
+                        placeholder="골프장 이름을 입력하세요"
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
