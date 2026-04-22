@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>견적서 확인</title>
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; background: #ffffff; margin: 0; padding: 20px; color: #333; }
+    .card { max-width: 400px; margin: 0 auto; }
+    .title { color: #1b5e20; text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #27ae60; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+    .label { font-weight: bold; color: #333; width: 85px; }
+    .value { color: #555; flex: 1; }
+    .email { color: #3498db; text-decoration: underline; word-break: break-all; }
+    .divider { border-bottom: 2px solid #27ae60; margin: 20px 0; }
+    .courses { font-size: 14px; color: #333; line-height: 1.6; margin-top: 10px; }
+    .total-myr { color: #e74c3c; font-weight: bold; text-align: right; font-size: 16px; margin-top: 20px; }
+    .total-krw { color: #e74c3c; font-weight: bold; text-align: right; font-size: 18px; margin-top: 5px; }
+    .close-btn { display: block; width: 100%; background: #95a5a6; color: white; text-align: center; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 30px; cursor: pointer; }
+    #loading { text-align: center; padding: 50px; color: #666; font-size: 15px; line-height: 1.5; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #27ae60; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    대기 중...<br>상담원이 견적서를 전송하면<br>화면이 자동으로 바뀝니다.
+  </div>
+
+  <div id="content" class="card" style="display: none;">
+    <div class="title"><span id="v-name-title"></span> 님 견적서</div>
+    
+    <div class="row"><div class="label">신청자명 :</div><div class="value" id="v-name"></div></div>
+    <div class="row"><div class="label">문의일시 :</div><div class="value" id="v-date"></div></div>
+    <div class="row"><div class="label">희망일정 :</div><div class="value" id="v-period"></div></div>
+    <div class="row"><div class="label">이메일 :</div><div class="value email" id="v-email"></div></div>
+    
+    <div class="divider"></div>
+    
+    <div class="row"><div class="label">골프장 :</div></div>
+    <div class="courses" id="v-courses"></div>
+    
+    <div class="divider"></div>
+    
+    <div class="total-myr">합계(링깃) RM <span id="v-myr"></span></div>
+    <div class="total-krw">총 예상 비용(원) <span id="v-krw"></span>원</div>
+    
+    <button class="close-btn" onclick="window.close()">닫기</button>
+  </div>
+
+  <script type="module">
+    import { db } from "/src/firebase.ts";
+    import { doc, onSnapshot } from "firebase/firestore";
+
+    // URL에서 ?desk=1 파라미터 추출 (없으면 기본값 1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const deskId = urlParams.get('desk') || '1';
+
+    // Firestore의 active_sessions/desk_1 문서 실시간 감시
+    const docRef = doc(db, "active_sessions", `desk_${deskId}`);
+    
+    onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        
+        document.getElementById('v-name-title').innerText = data.from_name || '';
+        document.getElementById('v-name').innerText = data.from_name || '';
+        
+        const dateObj = new Date(data.timestamp);
+        document.getElementById('v-date').innerText = isNaN(dateObj) ? data.timestamp : dateObj.toISOString().split('T')[0];
+        
+        document.getElementById('v-period').innerText = data.travel_period || '';
+        document.getElementById('v-email').innerText = data.email || '';
+        
+        let coursesHtml = '';
+        try {
+          const courses = JSON.parse(data.golf_courses);
+          courses.forEach(c => {
+            coursesHtml += `<div>${c.name} (${c.date} / ${c.time}): RM ${c.price}</div>`;
+          });
+        } catch(e) {
+          coursesHtml = (data.golf_courses || '').replace(/\n/g, '<br>');
+        }
+        document.getElementById('v-courses').innerHTML = coursesHtml;
+        
+        document.getElementById('v-myr').innerText = data.total_myr || '0';
+        document.getElementById('v-krw').innerText = Number(data.total_krw || 0).toLocaleString();
+      } else {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('content').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

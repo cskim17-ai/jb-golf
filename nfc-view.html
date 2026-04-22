@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교보문고 도서 정보 확인</title>
+    <style>
+        /* 화면 전체를 꽉 채우기 위한 스타일 설정 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* 스크롤바 중복 방지 */
+            background-color: #f3f4f6;
+        }
+        .container {
+            width: 100%;
+            height: 100vh; /* 브라우저 높이에 맞춤 */
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: sans-serif;
+            color: #666;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">화면을 불러오는 중입니다...</div>
+    <div class="container">
+        <iframe id="content-frame" src="" 
+                style="width:100%; height:100%; border:none; display:none;">
+        </iframe>
+    </div>
+
+    <!-- Firebase SDK (모듈 방식) -->
+    <script type="module">
+        import { db } from "/src/firebase.ts";
+        import { doc, onSnapshot } from "firebase/firestore";
+
+        const iframe = document.getElementById('content-frame');
+        const loading = document.getElementById('loading');
+
+        // Firestore의 active_sessions/desk_1 문서 실시간 구독
+        onSnapshot(doc(db, "active_sessions", "desk_1"), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.url) {
+                    // URL이 변경되었을 때만 iframe src 업데이트
+                    if (iframe.src !== data.url) {
+                        iframe.src = data.url;
+                        iframe.style.display = 'block';
+                        loading.style.display = 'none';
+                    }
+                }
+            }
+        }, (error) => {
+            console.error("Firestore 구독 오류:", error);
+            loading.innerText = "데이터를 불러오는 중 오류가 발생했습니다.";
+        });
+    </script>
+</body>
+</html>

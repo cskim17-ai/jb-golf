@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교보문고 도서 정보 확인</title>
+    <style>
+        /* 화면 전체를 꽉 채우기 위한 스타일 설정 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* 스크롤바 중복 방지 */
+        }
+        .container {
+            width: 100%;
+            height: 100vh; /* 브라우저 높이에 맞춤 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <iframe src="https://kiosk.kyobobook.co.kr/bookInfoInk?site=001&barcode=9791190669658&ejkGb=KOR" 
+                style="width:100%; height:100%; border:none;">
+        </iframe>
+    </div>
+
+</body>
+</html>

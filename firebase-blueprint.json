@@ -1,0 +1,167 @@
+{
+  "entities": {
+    "CoursePricing": {
+      "title": "Course Pricing",
+      "description": "Pricing information for each golf course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseName": { "type": "string" },
+        "category": { "type": "string" },
+        "remarks": { "type": "string" },
+        "adminMemo": { "type": "string" },
+        "operatingHours": { "type": "string" },
+        "courseInfo": { "type": "string" },
+        "caddyInfo": { "type": "string" },
+        "promotionInfo": { "type": "string" },
+        "premiumInfo": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "address": { "type": "string" },
+        "websiteUrl": { "type": "string" },
+        "order": { "type": "number" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": { "type": "string" },
+              "division": { "type": "string" },
+              "morning": { "type": "string" },
+              "afternoon": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "courseName", "rows"]
+    },
+    "QuoteRequest": {
+      "title": "Quote Request",
+      "description": "A request for a golf quote from a customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "from_name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "golf_courses": { "type": "string" },
+        "travel_period": { "type": "string" },
+        "total_myr": { "type": "string" },
+        "total_krw": { "type": "string" },
+        "summary": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "from_name", "email", "total_myr", "total_krw"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "A public notice or announcement from the admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isPinned": { "type": "boolean" },
+        "showAsPopup": { "type": "boolean" },
+        "imageUrl": { "type": "string" },
+        "author": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    },
+    "GolferQuote": {
+      "title": "Golfer Quote",
+      "description": "A quote and stats from a legendary golfer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nationality": { "type": "string" },
+        "birthYear": { "type": "string" },
+        "gender": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "quote": { "type": "string" },
+        "source": { "type": "string" },
+        "stats": { "type": "string" }
+      },
+      "required": ["id", "name", "quote"]
+    },
+    "Chatting": {
+      "title": "Chatting",
+      "description": "Data for the scenario chatbot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name_ko": { "type": "string" },
+        "name_en": { "type": "string" },
+        "region_tag": { "type": "string" },
+        "price_wd_am": { "type": "number" },
+        "price_note": { "type": "string" },
+        "total_holes": { "type": "number" },
+        "course_names": { "type": "string" },
+        "course_desc_legacy": { "type": "string" },
+        "image_url_main": { "type": "string" },
+        "location": { "type": "string" },
+        "main_features": { "type": "string" },
+        "expert_pros": { "type": "string" },
+        "contact_no": { "type": "string" },
+        "map_url": { "type": "string" },
+        "search_keywords": { "type": "string" }
+      },
+      "required": ["id", "name_ko"]
+    },
+    "GalleryTopic": {
+      "title": "Gallery Topic",
+      "description": "A collection of photos grouped by a topic title",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "title"]
+    },
+    "GalleryPhoto": {
+      "title": "Gallery Photo",
+      "description": "An individual photo within a gallery topic",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "caption": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "url"]
+    }
+  },
+  "firestore": {
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Collection of public notices"
+    },
+    "/pricing/{courseId}": {
+      "schema": "CoursePricing",
+      "description": "Collection of golf course pricing data"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "QuoteRequest",
+      "description": "Collection of customer quote requests"
+    },
+    "/golferQuotes/{quoteId}": {
+      "schema": "GolferQuote",
+      "description": "Collection of legendary golfer quotes"
+    },
+    "/chatting/{chatId}": {
+      "schema": "Chatting",
+      "description": "Collection of data for the scenario chatbot"
+    },
+    "/gallery/{topicId}": {
+      "schema": "GalleryTopic",
+      "description": "Collection of gallery topics"
+    },
+    "/gallery/{topicId}/photos/{photoId}": {
+      "schema": "GalleryPhoto",
+      "description": "Subcollection of photos for a topic"
+    }
+  }
+}
