@@ -68,5 +68,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 10. 설정 정보: 누구나 읽기 가능, 관리자만 수정
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

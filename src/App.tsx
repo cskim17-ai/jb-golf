@@ -300,6 +300,31 @@ export const MenuConfigProvider = ({ children }: { children: React.ReactNode }) 
   );
 };
 
+const LogoContext = createContext<string>(`${import.meta.env.BASE_URL}logo.png`);
+export const useLogo = () => useContext(LogoContext);
+
+export const LogoProvider = ({ children }: { children: React.ReactNode }) => {
+  const [logoUrl, setLogoUrl] = useState<string>(`${import.meta.env.BASE_URL}logo.png`);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, 'settings', 'logo'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.logoUrl) {
+          setLogoUrl(data.logoUrl);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <LogoContext.Provider value={logoUrl}>
+      {children}
+    </LogoContext.Provider>
+  );
+};
+
 export const PricingProvider = ({ children }: { children: React.ReactNode }) => {
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
 
@@ -512,6 +537,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const menuConfig = useMenuConfig();
+  const logoUrl = useLogo();
 
   const defaultNavLinks = [
     { name: '홈', path: '/' },
@@ -537,7 +563,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="text-4xl font-sans font-bold tracking-tighter flex items-center gap-4">
           <img 
-            src={`${import.meta.env.BASE_URL}logo.png`} 
+            src={logoUrl} 
             alt="Logo" 
             className="h-20 w-20 object-contain"
           />
@@ -600,6 +626,7 @@ const Navbar = () => {
 
 const Footer = () => {
   const menuConfig = useMenuConfig();
+  const logoUrl = useLogo();
   
   const defaultLinks = [
     { name: '공지사항', path: '/notices' },
@@ -625,7 +652,7 @@ const Footer = () => {
         <div>
           <h2 className="text-3xl font-sans font-bold italic mb-4 flex items-center gap-3">
             <img 
-              src={`${import.meta.env.BASE_URL}logo.png`} 
+              src={logoUrl} 
               alt="Logo" 
               className="h-12 w-12 object-contain"
             />
@@ -6308,9 +6335,11 @@ export default function App() {
             <GalleryProvider>
               <VideoGalleryProvider>
                 <MenuConfigProvider>
-                  <Router basename={import.meta.env.BASE_URL}>
-                    <AppContent />
-                  </Router>
+                  <LogoProvider>
+                    <Router basename={import.meta.env.BASE_URL}>
+                      <AppContent />
+                    </Router>
+                  </LogoProvider>
                 </MenuConfigProvider>
               </VideoGalleryProvider>
             </GalleryProvider>

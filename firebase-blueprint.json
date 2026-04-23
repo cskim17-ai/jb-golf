@@ -150,6 +150,15 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "question", "answer", "category", "order"]
+    },
+    "LogoSetting": {
+      "title": "Logo Setting",
+      "description": "Dynamic logo configuration",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["logoUrl"]
     }
   },
   "firestore": {
@@ -184,6 +193,10 @@
     "/faqs/{faqId}": {
       "schema": "FAQ",
       "description": "Collection of frequently asked questions"
+    },
+    "/settings/logo": {
+      "schema": "LogoSetting",
+      "description": "Dynamic logo configuration document"
     }
   }
 }
