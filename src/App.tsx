@@ -978,7 +978,6 @@ const Golf = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-4xl md:text-7xl font-bold mb-8">골프장 소개</h1>
         <div className="flex flex-wrap gap-4">
           {['All', 'Premium', 'Value', 'Accessibility'].map((f) => (
             <button 
@@ -1134,9 +1133,6 @@ const Stay = () => {
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       {/* Stay Section */}
       <header className="mb-12">
-        <div className="flex items-center gap-6 mb-8">
-          <h1 className="text-4xl md:text-7xl font-bold">알거리 <span className="italic text-lime"></span></h1>
-        </div>
       </header>
 
       <GolferQuotesWidget />
@@ -1244,7 +1240,6 @@ const Pricing = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-4xl md:text-7xl font-bold mb-8">가격표</h1>
         <div className="flex flex-wrap justify-between items-end gap-6 border-b border-white/10 pb-8 mb-8">
           <div className="space-y-1">
             <p className="text-xs tracking-widest uppercase opacity-40">현재 날짜</p>
@@ -1723,7 +1718,6 @@ const Booking = () => {
       <header className="mb-12">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl md:text-7xl font-bold mb-4">예약하기</h1>
             <p className="text-sm opacity-40 tracking-widest uppercase">
               {format(new Date(), 'yyyy.MM.dd')} | 환율: 1 MYR = {exchangeRate} 원
             </p>
@@ -2236,7 +2230,6 @@ const NoticeList = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-4xl mx-auto">
       <header className="mb-12">
-        <h1 className="text-4xl md:text-7xl font-bold mb-4">공지사항</h1>
         <p className="text-xl serif italic opacity-60">야나골 골프클럽의 새로운 소식과 안내사항을 확인하세요.</p>
       </header>
 
@@ -5485,6 +5478,14 @@ const Gallery = () => {
   const [featuredVideo, setFeaturedVideo] = useState<GalleryItem | null>(null);
   const [selectedVideoTopicId, setSelectedVideoTopicId] = useState<string>('all');
   const [selectedPhotoTopicId, setSelectedPhotoTopicId] = useState<string>('all');
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToPlayer = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   useEffect(() => {
     if (galleryTopics.length > 0 && selectedPhotoTopicId === 'all') {
@@ -5637,7 +5638,7 @@ const Gallery = () => {
   };
 
   return (
-    <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto">
+    <div className="pt-40 pb-24 px-6 max-w-7xl mx-auto" ref={scrollRef}>
       <header className="mb-16 text-center">
         <motion.span 
           initial={{ opacity: 0, y: 10 }}
@@ -5646,13 +5647,6 @@ const Gallery = () => {
         >
           눈으로 즐기는 경험
         </motion.span>
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          className="text-6xl md:text-8xl serif mb-8"
-        >
-          갤러리
-        </motion.h1>
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -5726,12 +5720,12 @@ const Gallery = () => {
             className="space-y-12"
           >
             {/* Featured Video */}
-            {featuredVideo && selectedVideoTopicId === 'all' && (
+            {featuredVideo && (
               <div className="glass rounded-[40px] overflow-hidden border border-white/10 shadow-2xl">
                 <div className="grid lg:grid-cols-3">
                   <div className="lg:col-span-2 aspect-video bg-black">
                     <iframe
-                      src={featuredVideo.url}
+                      src={`${featuredVideo.url}${featuredVideo.url.includes('?') ? '&' : '?'}${isAutoPlaying ? 'autoplay=1&mute=1' : ''}`}
                       className="w-full h-full border-0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -5744,7 +5738,7 @@ const Gallery = () => {
                     <p className="text-white/60 leading-relaxed mb-8">{featuredVideo.description}</p>
                     <div className="flex items-center gap-4 text-xs tracking-widest uppercase opacity-40">
                       <div className="w-12 h-[1px] bg-white" />
-                      <span>Featured Content</span>
+                      <span>YouTube Content</span>
                     </div>
                   </div>
                 </div>
@@ -5789,8 +5783,9 @@ const Gallery = () => {
                           key={video.id}
                           whileHover={{ y: -5 }}
                           onClick={() => {
-                setLightboxItems(topicVideoItems);
                 setFeaturedVideo(item);
+                setIsAutoPlaying(true);
+                scrollToPlayer();
               }}
                           className={cn(
                             "cursor-pointer group relative rounded-3xl overflow-hidden border transition-all duration-500",
@@ -5985,14 +5980,25 @@ const Gallery = () => {
                   />
                 </div>
                 <div className="text-center max-w-2xl">
-                  <motion.p 
+                  <motion.div 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="text-white/60 text-lg leading-relaxed mb-8"
+                    className="flex items-center justify-center gap-6 mb-8"
                   >
-                    {selectedItem.description}
-                  </motion.p>
+                    <p className="text-white/60 text-lg leading-relaxed">
+                      {selectedItem.description}
+                    </p>
+                    <div className="flex items-center gap-1 text-sm font-bold">
+                      <span className="text-lime">
+                        {lightboxItems.findIndex(i => i.id === selectedItem.id) + 1}
+                      </span>
+                      <span className="text-white/30">/</span>
+                      <span className="text-white/40">
+                        {lightboxItems.length}
+                      </span>
+                    </div>
+                  </motion.div>
                   <motion.button 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}

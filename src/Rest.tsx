@@ -36,9 +36,6 @@ export const Rest = () => {
   return (
     <div className="pt-40 pb-24 px-6 max-w-6xl mx-auto">
       <header className="mb-12">
-        <div className="flex items-center gap-6 mb-8">
-          <h1 className="text-7xl serif">휴식거리 <span className="italic text-lime"></span></h1>
-        </div>
         <p className="text-xl serif italic opacity-80 mb-12 max-w-2xl">
           "라운딩 후의 완벽한 휴식을 위한 조호바루, 싱가폴, 말라카 추천 가이드"
         </p>
