@@ -1,6 +1,7 @@
 export interface GalleryItem {
   id: string;
   type: 'video' | 'photo';
+  topicId?: string;
   title?: string;
   description?: string;
   url: string;

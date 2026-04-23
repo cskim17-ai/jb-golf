@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight,
   CheckCircle2, AlertCircle, Send, Search,
   Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon, Home as HomeIcon, Download, Upload,
-  MessageSquare, RotateCcw, Phone
+  MessageSquare, RotateCcw, Phone, HelpCircle
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -245,6 +245,19 @@ interface MenuItem {
   label: string;
 }
 
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  order: number;
+  isActive: boolean;
+  imageUrl?: string;
+  imageAlt?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
 const ID_TO_PATH: Record<string, string> = {
   'home': '/',
   'notices': '/notices',
@@ -253,7 +266,8 @@ const ID_TO_PATH: Record<string, string> = {
   'relax': '/rest',
   'pricing': '/pricing',
   'booking': '/booking',
-  'gallery': '/gallery'
+  'gallery': '/gallery',
+  'faq': '/faq'
 };
 
 const MenuConfigContext = createContext<MenuItem[]>([]);
@@ -267,7 +281,12 @@ export const MenuConfigProvider = ({ children }: { children: React.ReactNode }) 
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.tabs && Array.isArray(data.tabs)) {
-          setMenuItems(data.tabs);
+          let items = [...data.tabs];
+          // Ensure FAQ is always present at the end if not in config
+          if (!items.find(item => item.id === 'faq')) {
+            items.push({ id: 'faq', label: 'FAQ' });
+          }
+          setMenuItems(items);
         }
       }
     });
@@ -503,6 +522,7 @@ const Navbar = () => {
     { name: '가격표', path: '/pricing' },
     { name: '예약하기', path: '/booking' },
     { name: '갤러리', path: '/gallery' },
+    { name: 'FAQ', path: '/faq' },
   ];
 
   const navLinks = menuConfig.length > 0 
@@ -589,6 +609,7 @@ const Footer = () => {
     { name: '가격표', path: '/pricing' },
     { name: '예약하기', path: '/booking' },
     { name: '갤러리', path: '/gallery' },
+    { name: 'FAQ', path: '/faq' },
   ];
 
   const quickLinks = menuConfig.length > 0 
@@ -5431,6 +5452,7 @@ const Admin = () => {
 const Gallery = () => {
   const [activeTab, setActiveTab] = useState<'video' | 'photo'>('video');
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  const [lightboxItems, setLightboxItems] = useState<GalleryItem[]>([]);
   const [galleryTopics, setGalleryTopics] = useState<GalleryTopic[]>([]);
   const [videoTopics, setVideoTopics] = useState<VideoTopic[]>([]);
   const [featuredVideo, setFeaturedVideo] = useState<GalleryItem | null>(null);
@@ -5557,16 +5579,15 @@ const Gallery = () => {
   // Flatten all photos from all topics for the lightbox navigation
   const allPhotos: GalleryItem[] = galleryTopics.flatMap(topic => 
     topic.photos.map((photo, idx) => ({
-      id: `${topic.id}_${idx}`,
+      id: `${topic.id}_${photo.id}`,
       type: 'photo' as const,
+      topicId: topic.id,
       title: topic.title,
       description: photo.caption,
       url: photo.url,
       thumbnail: photo.thumb_url || photo.url
     }))
   );
-
-  const currentItems = activeTab === 'video' ? videoItems : allPhotos;
 
   const getYouTubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -5575,17 +5596,17 @@ const Gallery = () => {
   };
 
   const handleNext = () => {
-    if (!selectedItem) return;
-    const currentIndex = currentItems.findIndex(i => i.id === selectedItem.id);
-    const nextIndex = (currentIndex + 1) % currentItems.length;
-    setSelectedItem(currentItems[nextIndex]);
+    if (!selectedItem || lightboxItems.length === 0) return;
+    const currentIndex = lightboxItems.findIndex(i => i.id === selectedItem.id);
+    const nextIndex = (currentIndex + 1) % lightboxItems.length;
+    setSelectedItem(lightboxItems[nextIndex]);
   };
 
   const handlePrev = () => {
-    if (!selectedItem) return;
-    const currentIndex = currentItems.findIndex(i => i.id === selectedItem.id);
-    const prevIndex = (currentIndex - 1 + currentItems.length) % currentItems.length;
-    setSelectedItem(currentItems[prevIndex]);
+    if (!selectedItem || lightboxItems.length === 0) return;
+    const currentIndex = lightboxItems.findIndex(i => i.id === selectedItem.id);
+    const prevIndex = (currentIndex - 1 + lightboxItems.length) % lightboxItems.length;
+    setSelectedItem(lightboxItems[prevIndex]);
   };
 
   return (
@@ -5654,10 +5675,14 @@ const Gallery = () => {
           >
             {activeTab === 'video' 
               ? videoTopics.map(topic => (
-                  <option key={topic.id} value={topic.id} className="text-black">{topic.title}</option>
+                  <option key={topic.id} value={topic.id} className="text-black">
+                    {topic.title} {topic.videos.length > 0 ? `(${topic.videos.length})` : ''}
+                  </option>
                 ))
               : galleryTopics.map(topic => (
-                  <option key={topic.id} value={topic.id} className="text-black">{topic.title}</option>
+                  <option key={topic.id} value={topic.id} className="text-black">
+                    {topic.title} {topic.photos.length > 0 ? `(${topic.photos.length})` : ''}
+                  </option>
                 ))
             }
           </select>
@@ -5706,7 +5731,9 @@ const Gallery = () => {
                 .map((topic) => (
                 <div key={topic.id} className="space-y-8">
                   <div className="flex items-center gap-6">
-                    <h2 className="text-3xl md:text-4xl serif italic">{topic.title}</h2>
+                    <h2 className="text-3xl md:text-4xl serif italic">
+                      {topic.title} <span className="text-xl opacity-40 ml-2">({topic.videos.length})</span>
+                    </h2>
                     <div className="h-[1px] flex-grow bg-white/10" />
                   </div>
                   
@@ -5722,11 +5749,22 @@ const Gallery = () => {
                       const ytId = getYouTubeId(video.url);
                       const isFeatured = featuredVideo?.id === video.id;
                       
+                      const topicVideoItems: GalleryItem[] = topic.videos.map(v => ({
+                        id: v.id,
+                        type: 'video' as const,
+                        title: v.title,
+                        description: v.description,
+                        url: v.url
+                      }));
+                      
                       return (
                         <motion.div
                           key={video.id}
                           whileHover={{ y: -5 }}
-                          onClick={() => setFeaturedVideo(item)}
+                          onClick={() => {
+                setLightboxItems(topicVideoItems);
+                setFeaturedVideo(item);
+              }}
                           className={cn(
                             "cursor-pointer group relative rounded-3xl overflow-hidden border transition-all duration-500",
                             isFeatured ? "border-lime shadow-[0_0_20px_rgba(163,230,53,0.2)]" : "border-white/10 hover:border-white/30"
@@ -5773,19 +5811,33 @@ const Gallery = () => {
               .map((topic, topicIdx) => (
               <div key={topic.id} className="space-y-8">
                 <div className="flex items-center gap-6">
-                  <h2 className="text-3xl md:text-4xl serif italic">{topic.title}</h2>
+                  <h2 className="text-3xl md:text-4xl serif italic">
+                    {topic.title} <span className="text-xl opacity-40 ml-2">({topic.photos.length})</span>
+                  </h2>
                   <div className="h-[1px] flex-grow bg-white/10" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {topic.photos.map((photo, photoIdx) => {
+                  {topic.photos.slice(0, 8).map((photo, photoIdx) => {
                     const item: GalleryItem = {
-                      id: `${topic.id}_${photoIdx}`,
+                      id: `${topic.id}_${photo.id}`,
                       type: 'photo',
+                      topicId: topic.id,
                       title: topic.title,
                       description: photo.caption,
                       url: photo.url,
                       thumbnail: photo.thumb_url || photo.url
                     };
+
+                    const topicPhotoItems = topic.photos.map(p => ({
+                      id: `${topic.id}_${p.id}`,
+                      type: 'photo' as const,
+                      topicId: topic.id,
+                      title: topic.title,
+                      description: p.caption,
+                      url: p.url,
+                      thumbnail: p.thumb_url || p.url
+                    }));
+
                     return (
                       <div key={item.id} className="space-y-3">
                         <motion.div
@@ -5793,7 +5845,10 @@ const Gallery = () => {
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: photoIdx * 0.05 }}
-                          onClick={() => setSelectedItem(item)}
+                          onClick={() => {
+                            setLightboxItems(topicPhotoItems);
+                            setSelectedItem(item);
+                          }}
                           className="relative group cursor-pointer rounded-2xl overflow-hidden aspect-[4/3] shadow-xl border border-white/5"
                         >
                           <img 
@@ -5818,6 +5873,22 @@ const Gallery = () => {
                     );
                   })}
                 </div>
+                {topic.photos.length > 8 && (
+                  <div className="flex justify-center mt-8">
+                    <button 
+                      onClick={() => {
+                        const topicPhotos = allPhotos.filter(p => (p as any).topicId === topic.id);
+                        setLightboxItems(topicPhotos);
+                        if (topicPhotos.length > 0) {
+                          setSelectedItem(topicPhotos[0]);
+                        }
+                      }}
+                      className="bg-white/5 border border-white/10 hover:border-lime hover:text-lime text-white/60 px-10 py-3 rounded-full text-sm font-bold transition-all"
+                    >
+                      [사진 더보기]
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             {galleryTopics.length === 0 && (
@@ -5843,11 +5914,11 @@ const Gallery = () => {
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                   <span className="text-xs font-bold text-lime">
-                    {currentItems.findIndex(i => i.id === selectedItem.id) + 1}
+                    {lightboxItems.findIndex(i => i.id === selectedItem.id) + 1}
                   </span>
                 </div>
                 <span className="text-white/40 text-xs tracking-widest uppercase">
-                  / {currentItems.length}
+                  / {lightboxItems.length}
                 </span>
               </div>
             </div>
@@ -5887,18 +5958,11 @@ const Gallery = () => {
                   />
                 </div>
                 <div className="text-center max-w-2xl">
-                  <motion.h2 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="text-4xl md:text-5xl serif text-white mb-4"
-                  >
-                    {selectedItem.title}
-                  </motion.h2>
                   <motion.p 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="text-white/60 text-lg leading-relaxed"
+                    className="text-white/60 text-lg leading-relaxed mb-8"
                   >
                     {selectedItem.description}
                   </motion.p>
@@ -5917,6 +5981,151 @@ const Gallery = () => {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+};
+
+const FAQSection = () => {
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('전체');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'faqs'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }) as FAQ)
+        .filter(f => f.isActive)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      setFaqs(data);
+      const cats = ['전체', ...new Set(data.map(f => f.category))];
+      setCategories(cats);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const filteredFaqs = activeCategory === '전체' 
+    ? faqs 
+    : faqs.filter(f => f.category === activeCategory);
+
+  return (
+    <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto">
+      <header className="mb-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime/10 border border-lime/20 text-lime text-xs font-bold tracking-widest uppercase mb-6"
+        >
+          <HelpCircle size={14} />
+          Customer Support
+        </motion.div>
+        <p className="text-white/60 text-lg max-w-2xl mx-auto">
+          자주 묻는 질문들을 확인하고 궁금한 점을 해결하세요.
+        </p>
+
+        {/* Categories */}
+        <div className="flex flex-wrap justify-center gap-3 mt-12">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setActiveCategory(cat);
+                setExpandedId(null);
+              }}
+              className={cn(
+                "px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+                activeCategory === cat 
+                  ? "bg-lime text-forest shadow-[0_0_20px_rgba(163,230,53,0.3)]" 
+                  : "bg-white/5 text-white/60 hover:bg-white/10"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {loading ? (
+        <div className="py-24 text-center opacity-40">
+          <div className="w-12 h-12 border-4 border-lime/20 border-t-lime rounded-full animate-spin mx-auto mb-4" />
+          <p className="serif italic">Loading FAQs...</p>
+        </div>
+      ) : (
+        <div className="max-w-3xl mx-auto space-y-4">
+          <AnimatePresence mode="popLayout">
+            {filteredFaqs.map((faq, idx) => (
+              <motion.div
+                key={faq.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: idx * 0.05 }}
+                className="glass rounded-3xl border border-white/10 overflow-hidden"
+              >
+                <button
+                  onClick={() => setExpandedId(expandedId === faq.id ? null : faq.id)}
+                  className="w-full p-6 text-left flex items-center justify-between gap-4 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="w-8 h-8 rounded-xl bg-lime/10 text-lime flex items-center justify-center text-xs font-bold">
+                      Q
+                    </span>
+                    <h3 className="text-lg font-medium group-hover:text-lime transition-colors">
+                      {faq.question}
+                    </h3>
+                  </div>
+                  <div className={cn(
+                    "p-2 rounded-full bg-white/5 transition-transform duration-300",
+                    expandedId === faq.id ? "rotate-180 bg-lime/20 text-lime" : ""
+                  )}>
+                    <ChevronDown size={20} />
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {expandedId === faq.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-6 pt-0 border-t border-white/5 bg-white/[0.02]">
+                        <div className="flex gap-4">
+                          <span className="w-8 h-8 rounded-xl bg-forest text-white/40 flex items-center justify-center text-xs font-bold shrink-0">
+                            A
+                          </span>
+                          <div className="space-y-4 text-white/70 leading-relaxed whitespace-pre-wrap">
+                            {faq.answer}
+                            {faq.imageUrl && (
+                              <div className="rounded-2xl overflow-hidden border border-white/10 max-w-md">
+                                <img 
+                                  src={faq.imageUrl} 
+                                  alt={faq.imageAlt || faq.question} 
+                                  className="w-full h-auto"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {filteredFaqs.length === 0 && (
+            <div className="py-24 text-center opacity-40 serif italic">
+              해당하는 질문이 없습니다.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -6065,6 +6274,7 @@ const AppContent = () => {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/faq" element={<FAQSection />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>

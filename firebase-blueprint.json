@@ -132,6 +132,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "url"]
+    },
+    "FAQ": {
+      "title": "FAQ",
+      "description": "Frequently Asked Questions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "category": { "type": "string" },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "imageUrl": { "type": "string" },
+        "imageAlt": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "question", "answer", "category", "order"]
     }
   },
   "firestore": {
@@ -162,6 +180,10 @@
     "/gallery/{topicId}/photos/{photoId}": {
       "schema": "GalleryPhoto",
       "description": "Subcollection of photos for a topic"
+    },
+    "/faqs/{faqId}": {
+      "schema": "FAQ",
+      "description": "Collection of frequently asked questions"
     }
   }
 }

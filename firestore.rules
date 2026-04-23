@@ -62,5 +62,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // 9. FAQ: 누구나 읽기 가능, 관리자만 수정
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
