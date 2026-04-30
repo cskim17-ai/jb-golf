@@ -159,9 +159,32 @@
         "logoUrl": { "type": "string" }
       },
       "required": ["logoUrl"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "User profile and membership information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "socialId": { "type": "string" },
+        "provider": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLogin": { "type": "string", "format": "date-time" },
+        "isDeleted": { "type": "boolean" }
+      },
+      "required": ["uid", "email", "role"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
     "/notices/{noticeId}": {
       "schema": "Notice",
       "description": "Collection of public notices"

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, createContext, useCont
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Menu, X, Calendar, Users, MapPin, 
+  Menu, X, Calendar, User as UserIcon, Users, MapPin, 
   Star, Clock, Info, 
   Calculator, Map as MapIcon,
   Plane, Car, Mail, Play,
@@ -53,6 +53,11 @@ import * as XLSX from 'xlsx';
 import { QRCodeSVG } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginView from './views/LoginView';
+import ProfileView from './views/ProfileView';
+import { logout } from './services/authService';
 
 import { GOLF_COURSES, STAY_UNITS, KSL_LOCATION, type StayUnit } from './constants';
 import { GALLERY_DATA, type GalleryItem } from './galleryData';
@@ -533,11 +538,55 @@ const compressImage = (base64Str: string, maxWidth = 1200, maxHeight = 1200, qua
   });
 };
 
+// --- Protected Route ---
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { profile, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !profile) {
+      navigate('/login');
+    }
+  }, [profile, loading, navigate]);
+
+  if (loading) return null;
+  return profile ? <>{children}</> : null;
+};
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const menuConfig = useMenuConfig();
   const logoUrl = useLogo();
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAuthAction = () => {
+    if (profile) {
+      logout();
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const handleProfileClick = () => {
+    if (profile) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const isProtectedRoute = (path: string) => {
+    return path === '/pricing' || path === '/booking';
+  };
+
+  const handleLinkClick = (e: React.MouseEvent, path: string) => {
+    if (isProtectedRoute(path) && !profile) {
+      e.preventDefault();
+      navigate('/login');
+    }
+  };
 
   const defaultNavLinks = [
     { name: '홈', path: '/' },
@@ -546,14 +595,14 @@ const Navbar = () => {
     { name: '알거리', path: '/stay' },
     { name: '휴식거리', path: '/rest' },
     { name: '가격표', path: '/pricing' },
-    { name: '예약하기', path: '/booking' },
+    { name: '견적 문의', path: '/booking' },
     { name: '갤러리', path: '/gallery' },
     { name: 'FAQ', path: '/faq' },
   ];
 
   const navLinks = menuConfig.length > 0 
     ? menuConfig.map(item => ({
-        name: item.label,
+        name: item.id === 'booking' ? '견적 문의' : item.label,
         path: ID_TO_PATH[item.id] || '/'
       }))
     : defaultNavLinks;
@@ -561,32 +610,57 @@ const Navbar = () => {
   return (
     <nav className="fixed top-8 left-0 w-full z-50 px-6">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link to="/" className="text-4xl font-sans font-bold tracking-tighter flex items-center gap-4">
+        <Link to="/" className="flex items-center gap-3">
           <img 
             src={logoUrl} 
             alt="Logo" 
             className="h-20 w-20 object-contain"
           />
-          <div className="flex flex-col gap-3">
-            <span className="text-lime leading-none">야나골</span>
-            <span className="text-white leading-none">골프클럽</span>
+          <div className="flex flex-col gap-1">
+            <span className="text-lime text-2xl font-bold leading-none tracking-tighter">야나골</span>
+            <span className="text-white text-2xl font-bold leading-none tracking-tighter">골프클럽</span>
           </div>
         </Link>
         
-        <div className="hidden md:flex items-center gap-3 glass p-2 rounded-full">
-          {navLinks.map((link: any) => (
-            <Link 
-              key={link.path} 
-              to={link.path}
-              onClick={link.onClick}
+        <div className="hidden md:flex items-center gap-2 glass p-2 rounded-full flex-1 max-w-5xl ml-8 justify-between">
+          <div className="flex items-center gap-1">
+            {navLinks.map((link: any) => (
+              <Link 
+                key={link.path} 
+                to={link.path}
+                onClick={(e) => {
+                  handleLinkClick(e, link.path);
+                  if (link.onClick) link.onClick(e);
+                }}
+                className={cn(
+                  "pill-nav border-none flex-shrink-0 text-sm whitespace-nowrap px-4",
+                  location.pathname === link.path ? "active-pill" : "text-white/80"
+                )}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pr-2">
+            <button 
+              onClick={handleProfileClick}
               className={cn(
                 "pill-nav border-none",
-                location.pathname === link.path ? "active-pill" : "text-white/80"
+                location.pathname === '/profile' ? "active-pill" : "text-white/80"
               )}
             >
-              {link.name}
-            </Link>
-          ))}
+              <UserIcon size={18} className={cn(profile && "text-lime")} />
+            </button>
+            <button 
+              onClick={handleAuthAction}
+              className={cn(
+                "pill-nav border-none whitespace-nowrap",
+                profile ? "text-white/40 hover:text-white" : "text-lime font-bold"
+              )}
+            >
+              {profile ? '로그아웃' : '로그인'}
+            </button>
+          </div>
         </div>
 
         {/* Removed Contact US button */}
@@ -608,7 +682,10 @@ const Navbar = () => {
               <Link 
                 key={link.path} 
                 to={link.path} 
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  handleLinkClick(e, link.path);
+                  setIsOpen(false);
+                }}
                 className={cn(
                   "text-xl serif",
                   location.pathname === link.path ? "text-lime" : "text-white"
@@ -617,6 +694,28 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            <button 
+              onClick={() => {
+                handleProfileClick();
+                setIsOpen(false);
+              }}
+              className={cn(
+                "text-xl serif text-left flex items-center gap-2",
+                location.pathname === '/profile' ? "text-lime" : "text-white"
+              )}
+            >
+              <UserIcon size={20} className={profile ? "text-lime" : "text-white/40"} />
+              {profile ? '내 정보' : '로그인 하세요'}
+            </button>
+            <button 
+              onClick={() => {
+                handleAuthAction();
+                setIsOpen(false);
+              }}
+              className="text-xl serif text-left text-lime font-bold mt-2 border-t border-white/10 pt-4"
+            >
+              {profile ? '로그아웃' : '로그인'}
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -627,6 +726,8 @@ const Navbar = () => {
 const Footer = () => {
   const menuConfig = useMenuConfig();
   const logoUrl = useLogo();
+  const { profile } = useAuth();
+  const navigate = useNavigate();
   
   const defaultLinks = [
     { name: '공지사항', path: '/notices' },
@@ -634,17 +735,24 @@ const Footer = () => {
     { name: '알거리', path: '/stay' },
     { name: '휴식거리', path: '/rest' },
     { name: '가격표', path: '/pricing' },
-    { name: '예약하기', path: '/booking' },
+    { name: '견적 문의', path: '/booking' },
     { name: '갤러리', path: '/gallery' },
     { name: 'FAQ', path: '/faq' },
   ];
 
   const quickLinks = menuConfig.length > 0 
     ? menuConfig.filter(f => f.id !== 'home').map(item => ({
-        name: item.label,
+        name: item.id === 'booking' ? '견적 문의' : item.label,
         path: ID_TO_PATH[item.id] || '/'
       }))
     : defaultLinks;
+
+  const handleLinkClick = (e: React.MouseEvent, path: string) => {
+    if ((path === '/pricing' || path === '/booking') && !profile) {
+      e.preventDefault();
+      navigate('/login');
+    }
+  };
 
   return (
     <footer className="bg-ink text-paper py-10 px-6">
@@ -677,7 +785,14 @@ const Footer = () => {
           <h3 className="text-xs tracking-widest uppercase mb-4 opacity-60">빠른 링크</h3>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             {quickLinks.map((link) => (
-              <Link key={link.path} to={link.path} className="hover:underline">{link.name}</Link>
+              <Link 
+                key={link.path} 
+                to={link.path} 
+                onClick={(e) => handleLinkClick(e, link.path)}
+                className="hover:underline"
+              >
+                {link.name}
+              </Link>
             ))}
           </div>
         </div>
@@ -935,6 +1050,9 @@ const GolfCarousel = () => {
 };
 
 const Home = () => {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Hero Content */}
@@ -954,8 +1072,17 @@ const Home = () => {
           </p>
           
           <div className="flex flex-wrap justify-center gap-6 mb-24">
-            <Link to="/booking" className="btn-primary">
-              예약하기
+            <Link 
+              to="/booking" 
+              onClick={(e) => {
+                if (!profile) {
+                  e.preventDefault();
+                  navigate('/login');
+                }
+              }}
+              className="btn-primary"
+            >
+              견적 문의
             </Link>
             <Link to="/golf" className="btn-secondary glass">
               골프장 소개
@@ -1363,6 +1490,7 @@ const Pricing = () => {
 };
 
 const Booking = () => {
+  const navigate = useNavigate();
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [options, setOptions] = useState<Record<string, Array<{ 
@@ -1378,6 +1506,8 @@ const Booking = () => {
   const [pricingLoading, setPricingLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const exchangeRate = useExchangeRate();
+  const authContextValue = useAuth();
+  const { profile } = authContextValue;
 
   useEffect(() => {
     const unsubscribePricing = onSnapshot(collection(db, 'pricing'), (snapshot) => {
@@ -1430,6 +1560,17 @@ const Booking = () => {
     travel_period: '',
     message: ''
   });
+
+  useEffect(() => {
+    if (profile) {
+      setQuoteForm(prev => ({
+        ...prev,
+        from_name: profile.displayName || '',
+        email: profile.email || '',
+        phone: profile.phoneNumber || ''
+      }));
+    }
+  }, [profile]);
 
   const golfCoursesRef = useRef<HTMLTextAreaElement>(null);
 
@@ -1603,6 +1744,12 @@ const Booking = () => {
   const sendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!auth.currentUser) {
+      alert('견적 문의를 위해 먼저 로그인해주세요.');
+      navigate('/login');
+      return;
+    }
+    
     if (selectedCourses.length === 0) {
       alert('선택된 골프장이 없습니다.');
       return;
@@ -1625,6 +1772,33 @@ const Booking = () => {
           scale: 2,
           useCORS: true,
           logging: false,
+          onclone: (clonedDoc) => {
+            // html2canvas fails with oklab/oklch colors in modern CSS (Tailwind v4)
+            // We search and replace oklab/oklch in all style tags to prevent parsing errors
+            const styles = clonedDoc.getElementsByTagName('style');
+            for (let i = 0; i < styles.length; i++) {
+              const style = styles[i];
+              if (style.innerHTML) {
+                // Replace oklch/oklab with a safe fallback color (white or transparent)
+                // This prevents the parser from crashing even if it's not a perfect visual match
+                style.innerHTML = style.innerHTML.replace(/okl(ab|ch)\([^)]+\)/g, 'rgba(255,255,255,0.1)');
+              }
+            }
+
+            // Also traverse elements to force standard colors for the captured area
+            const elements = clonedDoc.getElementsByTagName('*');
+            for (let i = 0; i < elements.length; i++) {
+              const el = elements[i] as HTMLElement;
+              const style = window.getComputedStyle(el);
+              
+              if (style.color.includes('okl')) el.style.color = 'white';
+              if (style.backgroundColor.includes('okl')) {
+                if (style.backgroundColor.includes('0.7')) el.style.backgroundColor = '#a3e635'; // lime
+                else el.style.backgroundColor = 'transparent';
+              }
+              if (style.borderColor.includes('okl')) el.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+          },
           ignoreElements: (element) => {
             // 견적 문의하기 버튼은 제외하고 캡처
             return element.tagName === 'BUTTON' && element.textContent?.includes('견적 문의하기');
@@ -1675,9 +1849,9 @@ const Booking = () => {
       receipt_image: receiptImageBase64 // 이미지 데이터 추가
     };
 
-    const serviceId = "service_jb_golf";
-    const templateId = "template_jb_golf_reserve";
-    const publicKey = "FBsRuyiHJUVlj-ptY";
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_jb_golf";
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_jb_golf_reserve";
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "FBsRuyiHJUVlj-ptY";
 
     console.log("EmailJS 전송 시도:", { serviceId, templateId, templateParams });
 
@@ -1691,8 +1865,10 @@ const Booking = () => {
       console.log('EmailJS 성공:', response.status, response.text);
 
       // Save quote to Firestore
+      const { profile } = authContextValue; // Need to get profile from context
       await addDoc(collection(db, 'quotes'), {
         ...templateParams,
+        userId: auth.currentUser?.uid || null,
         timestamp: new Date().toISOString(),
         serverTimestamp: serverTimestamp(),
         status: '접수확인'
@@ -1900,7 +2076,7 @@ const Booking = () => {
           <div ref={receiptRef} className="sticky top-40 glass p-10 rounded-[40px] shadow-2xl shadow-forest/20 border border-white/10 flex flex-col">
             <div className="absolute top-0 left-0 w-full h-2 bg-lime shrink-0" />
             <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4 shrink-0">
-              <h2 className="text-3xl serif">예상 견적서</h2>
+              <h2 className="text-3xl serif">그린피 예상 견적</h2>
               <span className="text-[10px] tracking-widest uppercase bg-lime text-forest px-3 py-1 rounded-full font-bold">캐디피/팁 제외</span>
             </div>
             
@@ -1956,25 +2132,37 @@ const Booking = () => {
               </div>
             </div>
 
-            <div className="mt-10 p-4 bg-white/5 rounded-2xl text-xs opacity-60 leading-relaxed">
+            <div className="mt-10 p-4 bg-white/5 rounded-2xl text-sm opacity-60 leading-relaxed">
               <p>• 위 견적은 선택하신 골프장과 스케줄에 따른 예상 금액입니다.</p>
               <p>• 현지 사정 및 환율 변동에 따라 실제 결제 금액과 차이가 있을 수 있습니다.</p>
               <p>• 상세 예약 확정은 이메일 문의를 통해 진행해 주세요.</p>
             </div>
 
-            <button
-              onClick={handleOpenQuoteModal}
-              disabled={!isAllDatesSelected}
-              className={cn(
-                "mt-6 w-full py-4 rounded-2xl font-bold tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2",
-                isAllDatesSelected
-                  ? "bg-lime text-forest hover:shadow-[0_0_30px_rgba(163,230,53,0.3)]"
-                  : "bg-white/10 text-white/20 cursor-not-allowed"
-              )}
-            >
-              <Send size={16} />
-              견적 문의하기
-            </button>
+            {!auth.currentUser ? (
+              <div className="mt-8 p-8 bg-lime/10 border border-lime/20 rounded-3xl text-center">
+                <p className="text-lime text-base font-medium mb-4 italic">견적 문의는 로그인 후 이용 가능합니다.</p>
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="w-full bg-lime text-forest py-3 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors"
+                >
+                  로그인 하러가기
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleOpenQuoteModal}
+                disabled={!isAllDatesSelected}
+                className={cn(
+                  "mt-6 w-full py-4 rounded-2xl font-bold tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2",
+                  isAllDatesSelected
+                    ? "bg-lime text-forest hover:shadow-[0_0_30px_rgba(163,230,53,0.3)]"
+                    : "bg-white/10 text-white/20 cursor-not-allowed"
+                )}
+              >
+                <Send size={16} />
+                견적 문의하기
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -2419,7 +2607,8 @@ const Admin = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === '9175938') {
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '9175938';
+    if (passwordInput === adminPassword) {
       setIsPasswordVerified(true);
       setFailedAttempts(0);
     } else {
@@ -6300,12 +6489,14 @@ const AppContent = () => {
       <main className="relative z-10 flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginView />} />
+          <Route path="/profile" element={<ProfileView />} />
           <Route path="/notices" element={<NoticeList />} />
           <Route path="/golf" element={<Golf />} />
           <Route path="/stay" element={<Stay />} />
           <Route path="/rest" element={<Rest />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/booking" element={<Booking />} />
+          <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+          <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/faq" element={<FAQSection />} />
           <Route path="/admin" element={<Admin />} />
@@ -6334,7 +6525,8 @@ export default function App() {
   }, []);
 
   return (
-    <ExchangeRateProvider>
+    <AuthProvider>
+      <ExchangeRateProvider>
       <PricingProvider>
         <NoticesProvider>
           <GolferQuotesProvider>
@@ -6353,5 +6545,6 @@ export default function App() {
         </NoticesProvider>
       </PricingProvider>
     </ExchangeRateProvider>
+    </AuthProvider>
   );
 }
