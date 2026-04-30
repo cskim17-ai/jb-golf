@@ -645,17 +645,17 @@ const Navbar = () => {
             <button 
               onClick={handleProfileClick}
               className={cn(
-                "pill-nav border-none",
+                "pill-nav border-none flex items-center justify-center px-4",
                 location.pathname === '/profile' ? "active-pill" : "text-white/80"
               )}
             >
-              <UserIcon size={18} className={cn(profile && "text-lime")} />
+              <UserIcon size={18} />
             </button>
             <button 
               onClick={handleAuthAction}
               className={cn(
                 "pill-nav border-none whitespace-nowrap",
-                profile ? "text-white/40 hover:text-white" : "text-lime font-bold"
+                profile ? "text-white/40 hover:text-white" : "text-white/80 font-bold"
               )}
             >
               {profile ? '로그아웃' : '로그인'}

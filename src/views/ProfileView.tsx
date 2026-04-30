@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Shield, Clock, FileText, ChevronRight, Save, LogOut, Camera, Trash2, Phone, Calendar, DollarSign, Tag } from 'lucide-react';
+import { User, Mail, Shield, Clock, FileText, ChevronRight, Save, LogOut, Camera, Trash2, Phone, Calendar, DollarSign, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, storage } from '../firebase';
 import { doc, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -205,37 +205,40 @@ const ProfileView = () => {
         {/* Profile Card */}
         <div className="lg:col-span-1">
           <div className="glass p-8 rounded-[40px] border border-white/10 sticky top-40">
-            <div className="flex flex-col items-center text-center mb-12">
-              <div className="relative group">
-                <div className="w-32 h-32 rounded-[40%] bg-lime/10 flex items-center justify-center overflow-hidden border-2 border-lime/20 shadow-2xl shadow-lime/10 transition-transform group-hover:scale-105">
-                  {(pendingPhoto || photoURL) ? (
-                    <img src={pendingPhoto || photoURL} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-4xl font-bold text-lime serif">
-                      {getAvatarFallback()}
-                    </div>
-                  )}
+            <div className="flex flex-col items-center mb-12">
+              <div className="relative flex items-center gap-6">
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-[40%] bg-lime/10 flex items-center justify-center overflow-hidden border-2 border-lime/20 shadow-2xl shadow-lime/10 transition-transform group-hover:scale-105">
+                    {(pendingPhoto || photoURL) ? (
+                      <img src={pendingPhoto || photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-4xl font-bold text-lime serif">
+                        {getAvatarFallback()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="absolute -bottom-2 -right-2 flex gap-2">
+                
+                <div className="flex flex-col gap-3">
+                  <label className="w-10 h-10 bg-lime text-forest rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-all border-2 border-white/10">
+                    <Camera size={18} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
                   {(pendingPhoto || photoURL) && (
                     <button 
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="w-10 h-10 bg-red-500/80 text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-all border-4 border-[#1a2b1a]"
+                      className="w-10 h-10 bg-red-500/80 text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-all border-2 border-white/10"
                     >
                       <Trash2 size={16} />
                     </button>
                   )}
-                  <label className="w-10 h-10 bg-lime text-forest rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-all border-4 border-[#1a2b1a]">
-                    <Camera size={18} />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                  </label>
                 </div>
               </div>
             </div>
 
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <div className="space-y-1.5">
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="space-y-1">
                 <label className="text-[10px] tracking-widest uppercase opacity-40 ml-2">회원명</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-lime/40" size={14} />
@@ -248,7 +251,7 @@ const ProfileView = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-[10px] tracking-widest uppercase opacity-40 ml-2">이메일 주소</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-lime/40" size={14} />
@@ -258,6 +261,44 @@ const ProfileView = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-lime transition-colors"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] tracking-widest uppercase opacity-40 ml-2">가입일자</label>
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-lime/40" size={14} />
+                  <div className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white">
+                    {user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : '-'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] tracking-widest uppercase opacity-40 ml-2">마지막 로그인</label>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-lime/40" size={14} />
+                  <div className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white leading-relaxed">
+                    {user?.metadata.lastSignInTime ? (
+                      <div className="flex flex-col">
+                        <span>{new Date(user.metadata.lastSignInTime).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}</span>
+                        <span className="text-xs text-white/50">{new Date(user.metadata.lastSignInTime).toLocaleTimeString('ko-KR', {
+                          hour: 'numeric',
+                          minute: 'numeric',
+                          second: 'numeric',
+                          hour12: true
+                        })}</span>
+                      </div>
+                    ) : '-'}
+                  </div>
                 </div>
               </div>
 
@@ -305,59 +346,12 @@ const ProfileView = () => {
             ) : (
               <div className="space-y-4">
                 {bookings.map((booking) => (
-                  <div 
-                    key={booking.id}
-                    className="p-6 bg-white/5 rounded-[32px] border border-white/5 hover:border-white/20 transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold text-white serif">{booking.golf_courses?.split('\n')[0]}</p>
-                          {booking.golf_courses?.split('\n').length > 1 && (
-                            <span className="text-xs text-lime/60 font-mono">+{booking.golf_courses.split('\n').length - 1}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-white/40 tracking-widest uppercase">{booking.travel_period}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className={cn(
-                          "px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase shadow-sm whitespace-nowrap",
-                          booking.status === '답변완료' ? "bg-white/10 text-white/40 border border-white/10" : "bg-lime/10 text-lime border border-lime/20"
-                        )}>
-                          {booking.status || '점수확인'}
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setSelectedBooking(booking);
-                            setIsModalOpen(true);
-                          }}
-                          className="px-4 py-1.5 bg-lime/10 text-lime rounded-full text-[10px] font-bold tracking-widest uppercase border border-lime/20 hover:bg-lime hover:text-forest transition-colors flex items-center gap-1"
-                        >
-                          보기
-                          <ChevronRight size={10} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/5">
-                      <div>
-                        <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">총 금액</p>
-                        <p className="text-sm font-bold text-lime">{booking.total_cost}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">요청 날짜</p>
-                        <p className="text-sm text-white/60 font-mono">
-                          {booking.timestamp ? new Date(booking.timestamp).toLocaleDateString() : '-'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 flex justify-between items-center">
-                      <p className="text-xs text-white/30 truncate max-w-[80%] italic">
-                        {booking.message || 'No additional message'}
-                      </p>
-                    </div>
-                  </div>
+                  <BookingCard 
+                    key={booking.id} 
+                    booking={booking} 
+                    setSelectedBooking={setSelectedBooking} 
+                    setIsModalOpen={setIsModalOpen} 
+                  />
                 ))}
               </div>
             )}
@@ -441,6 +435,92 @@ const ProfileView = () => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const BookingCard = ({ booking, setSelectedBooking, setIsModalOpen }: any) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div 
+      className="bg-white/5 rounded-[32px] border border-white/5 hover:border-white/20 transition-all group overflow-hidden"
+    >
+      <div 
+        className="p-6 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-bold text-white serif">{booking.golf_courses?.split('\n')[0]}</p>
+              {booking.golf_courses?.split('\n').length > 1 && (
+                <span className="text-xs text-lime/60 font-mono">+{booking.golf_courses.split('\n').length - 1}</span>
+              )}
+            </div>
+            <p className="text-xs text-white/40 tracking-widest uppercase">{booking.travel_period}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <div className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase shadow-sm whitespace-nowrap",
+              booking.status === '답변완료' ? "bg-white/10 text-white/40 border border-white/10" : "bg-lime/10 text-lime border border-lime/20"
+            )}>
+              {booking.status || '점수확인'}
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedBooking(booking);
+                  setIsModalOpen(true);
+                }}
+                className="px-4 py-1.5 bg-lime/10 text-lime rounded-full text-[10px] font-bold tracking-widest uppercase border border-lime/20 hover:bg-lime hover:text-forest transition-colors flex items-center gap-1"
+              >
+                보기
+                <ChevronRight size={10} />
+              </button>
+              <div 
+                className="w-7 h-7 bg-white/5 rounded-full flex items-center justify-center text-white/40 group-hover:text-white transition-colors"
+              >
+                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <div className="px-6 pb-6 pt-2 space-y-6">
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/5">
+                <div>
+                  <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">총 금액</p>
+                  <p className="text-sm font-bold text-lime">{booking.total_cost}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">요청 날짜</p>
+                  <p className="text-sm text-white/60 font-mono">
+                    {booking.timestamp ? new Date(booking.timestamp).toLocaleDateString() : '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">메시지</p>
+                <p className="text-xs text-white/30 italic whitespace-pre-wrap leading-relaxed">
+                  {booking.message || 'No additional message'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
