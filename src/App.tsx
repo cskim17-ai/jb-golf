@@ -2607,7 +2607,7 @@ const Admin = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || '9175938';
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     if (passwordInput === adminPassword) {
       setIsPasswordVerified(true);
       setFailedAttempts(0);
