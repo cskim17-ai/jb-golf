@@ -6,17 +6,27 @@ import { loginWithGoogle } from '../services/authService';
 
 const LoginView = () => {
   const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
   const handleLogin = async (provider: string) => {
+    if (isLoggingIn) return;
+    
     try {
       if (provider === 'google') {
+        setIsLoggingIn(true);
         await loginWithGoogle();
         navigate('/');
       } else {
         alert(`${provider} 로그인은 현재 준비 중입니다.`);
       }
     } catch (error: any) {
-      alert(error.message || '로그인 중 오류가 발생했습니다.');
+      if (error.code === 'auth/cancelled-popup-request') {
+        console.warn('Login popup was cancelled by a subsequent request.');
+      } else {
+        alert(error.message || '로그인 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 

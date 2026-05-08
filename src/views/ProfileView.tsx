@@ -409,6 +409,14 @@ const ProfileView = () => {
                   
                   <DetailItem label="여행 기간" value={selectedBooking.travel_period || '-'} />
                   <DetailItem 
+                    label="항공 정보" 
+                    value={selectedBooking.flight_info || '-'} 
+                  />
+                  <DetailItem 
+                    label="숙소 정보" 
+                    value={selectedBooking.accommodation_info || '-'} 
+                  />
+                  <DetailItem 
                     label="상태" 
                     value={selectedBooking.status || '접수확인'} 
                     highlight 
@@ -510,6 +518,17 @@ const BookingCard = ({ booking, setSelectedBooking, setIsModalOpen }: any) => {
                   <p className="text-sm text-white/60 font-mono">
                     {booking.timestamp ? new Date(booking.timestamp).toLocaleDateString() : '-'}
                   </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/5 text-xs text-white/60">
+                <div>
+                  <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">항공 정보</p>
+                  <p className="font-medium text-lime/80">{booking.flight_info || '-'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] tracking-widest uppercase opacity-30 mb-1">숙소 정보</p>
+                  <p className="font-medium text-lime/80">{booking.accommodation_info || '-'}</p>
                 </div>
               </div>
 

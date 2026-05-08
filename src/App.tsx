@@ -7,7 +7,7 @@ import {
   Calculator, Map as MapIcon,
   Plane, Car, Mail, Play,
   ChevronLeft, ChevronRight,
-  CheckCircle2, AlertCircle, Send, Search,
+  CheckCircle2, AlertCircle, Send, Search, Check,
   Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon, Home as HomeIcon, Download, Upload,
   MessageSquare, RotateCcw, Phone, HelpCircle
 } from 'lucide-react';
@@ -1500,6 +1500,8 @@ const Booking = () => {
     dates: Date[]
   }>>>({});
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [openCalendarKey, setOpenCalendarKey] = useState<string | null>(null);
   const [pricingData, setPricingData] = useState<CoursePricing[]>([]);
@@ -1558,6 +1560,8 @@ const Booking = () => {
     phone: '',
     golf_courses: '',
     travel_period: '',
+    flight_info: '싱가폴 공항 도착 송영차 필요',
+    accommodation_info: '호텔 정보 제공 요청',
     message: ''
   });
 
@@ -1774,30 +1778,66 @@ const Booking = () => {
           logging: false,
           onclone: (clonedDoc) => {
             // html2canvas fails with oklab/oklch colors in modern CSS (Tailwind v4)
-            // We search and replace oklab/oklch in all style tags to prevent parsing errors
-            const styles = clonedDoc.getElementsByTagName('style');
-            for (let i = 0; i < styles.length; i++) {
-              const style = styles[i];
-              if (style.innerHTML) {
-                // Replace oklch/oklab with a safe fallback color (white or transparent)
-                // This prevents the parser from crashing even if it's not a perfect visual match
-                style.innerHTML = style.innerHTML.replace(/okl(ab|ch)\([^)]+\)/g, 'rgba(255,255,255,0.1)');
+            // We must replace all 'okl*' color functions with standard HEX or RGB
+            try {
+              const styles = clonedDoc.getElementsByTagName('style');
+              for (let i = 0; i < styles.length; i++) {
+                const style = styles[i];
+                if (style.innerHTML && style.innerHTML.includes('okl')) {
+                  // Replace any oklch/oklab color with a standard HEX or RGBA fallback
+                  // Using a more robust regex to catch everything between the function start and end
+                  style.innerHTML = style.innerHTML.replace(/okl(ab|ch)\s*\([^;}]+\)/g, (match) => {
+                    if (match.includes('0.7')) return '#a3e635'; // Lime color match
+                    if (match.includes('forest')) return '#2d4a2d'; // Forest color match
+                    return 'rgba(255,255,255,0.1)'; // Default safe fallback
+                  });
+                }
               }
+            } catch (e) {
+              console.warn('Style tag sanitization failed:', e);
             }
 
-            // Also traverse elements to force standard colors for the captured area
-            const elements = clonedDoc.getElementsByTagName('*');
-            for (let i = 0; i < elements.length; i++) {
-              const el = elements[i] as HTMLElement;
-              const style = window.getComputedStyle(el);
-              
-              if (style.color.includes('okl')) el.style.color = 'white';
-              if (style.backgroundColor.includes('okl')) {
-                if (style.backgroundColor.includes('0.7')) el.style.backgroundColor = '#a3e635'; // lime
-                else el.style.backgroundColor = 'transparent';
+            // Explicitly force standard HEX/RGB on all elements to ensure stable capture
+            const elements = clonedDoc.querySelectorAll('*');
+            elements.forEach((node) => {
+              const el = node as HTMLElement;
+              try {
+                // Clear inline styles if they contain unsupported formats
+                if (el.style.cssText && el.style.cssText.includes('okl')) {
+                  el.style.cssText = el.style.cssText.replace(/okl(ab|ch)\s*\([^;}]+\)/g, '#ffffff');
+                }
+
+                // Get computed style to check how the browser resolved the color
+                const computed = window.getComputedStyle(el);
+                
+                // If computed color is in okl* format (some browsers might resolve it this way), 
+                // force them to stable HEX/RGB equivalents
+                if (computed.color.includes('okl')) {
+                  el.style.color = '#ffffff';
+                }
+                
+                if (computed.backgroundColor.includes('okl')) {
+                  // Detect primary branding colors and map them to stable HEX
+                  if (computed.backgroundColor.includes('0.7') || computed.backgroundColor.includes('39') || computed.backgroundColor.includes('211')) {
+                    el.style.backgroundColor = '#a3e635'; // Strong Lime
+                  } else if (computed.backgroundColor.includes('45') || computed.backgroundColor.includes('74')) {
+                    el.style.backgroundColor = '#2d4a2d'; // Forest Green
+                  } else {
+                    el.style.backgroundColor = 'transparent';
+                  }
+                }
+
+                if (computed.borderColor.includes('okl')) {
+                  el.style.borderColor = '#ffffff33'; // White with 20% opacity
+                }
+
+                // SVGs also need special care
+                if (computed.fill.includes('okl')) el.style.fill = '#a3e635';
+                if (computed.stroke.includes('okl')) el.style.stroke = '#a3e635';
+              } catch (e) {
+                // Skip nodes that cannot be accessed or computed
               }
-              if (style.borderColor.includes('okl')) el.style.borderColor = 'rgba(255,255,255,0.1)';
-            }
+            });
           },
           ignoreElements: (element) => {
             // 견적 문의하기 버튼은 제외하고 캡처
@@ -1834,56 +1874,153 @@ const Booking = () => {
     // 💡 모든 값을 문자열로 변환하여 전송하는 것이 안전합니다.
     const templateParams = {
       from_name: String(quoteForm.from_name),
-      name: String(quoteForm.from_name), // Added to match {{name}} in EmailJS template
+      name: String(quoteForm.from_name),
       email: String(quoteForm.email),
       phone: String(quoteForm.phone),
       contact: `${quoteForm.email} / ${quoteForm.phone}`,
+      to_email: 'cskim1747@gmail.com',
+      receiver: 'cskim1747@gmail.com',
+      admin_email: 'cskim1747@gmail.com',
+      to_name: '관리자',
       golf_courses: String(quoteForm.golf_courses),
       travel_period: String(quoteForm.travel_period),
+      flight_info: String(quoteForm.flight_info),
+      accommodation_info: String(quoteForm.accommodation_info),
       total_cost: `RM ${totalMYR} / ₩${(totalMYR * exchangeRate).toLocaleString()}`,
       schedule: `${quoteForm.travel_period} (전체 비용: RM ${totalMYR} / ₩${(totalMYR * exchangeRate).toLocaleString()})`,
       message: String(quoteForm.message),
       total_myr: String(totalMYR),
       total_krw: (totalMYR * exchangeRate).toLocaleString() + '원',
       summary: String(summary),
-      receipt_image: receiptImageBase64 // 이미지 데이터 추가
+      receipt_image: receiptImageBase64
     };
 
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_jb_golf";
-    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_jb_golf_reserve";
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_jb_golf_reservation";
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "FBsRuyiHJUVlj-ptY";
 
     console.log("EmailJS 전송 시도:", { serviceId, templateId, templateParams });
 
+    // 1. Initialize EmailJS explicitly before sending
+    emailjs.init(publicKey);
+
     setIsSending(true);
 
     try {
-      // Send email via EmailJS
-      const response = await emailjs.send(serviceId, templateId, templateParams, {
-        publicKey: publicKey,
-      });
-      console.log('EmailJS 성공:', response.status, response.text);
+      // 💡 Firestore 1MB 제한을 고려하여 이미지 압축 시도
+      let dbCompressedReceipt = receiptImageBase64;
+      let emailCompressedReceipt = receiptImageBase64;
 
-      // Save quote to Firestore
-      const { profile } = authContextValue; // Need to get profile from context
-      await addDoc(collection(db, 'quotes'), {
+      if (receiptImageBase64) {
+        // 1. Firestore용 압축 (최대 1MB, 여기서는 800KB 타겟)
+        if (receiptImageBase64.length > 800000) {
+          try {
+            dbCompressedReceipt = await compressImage(receiptImageBase64, 1200, 1200, 0.7);
+          } catch (e) {
+            console.warn('DB 이미지 압축 실패:', e);
+          }
+        }
+
+        // 2. EmailJS용 초고압축 (50KB 제한 대응)
+        try {
+          // 아주 낮은 퀄리티(0.1)로 압축하여 50KB 미만으로 유도
+          emailCompressedReceipt = await compressImage(receiptImageBase64, 300, 500, 0.1);
+          
+          // 압축 후에도 40KB를 넘으면 제외 (안전빵)
+          if (emailCompressedReceipt.length > 40000) {
+            console.warn('이메일 이미지 크기 초과 (40KB+), 제외 처리');
+            emailCompressedReceipt = '(이미지가 너무 커서 제외되었습니다. 관리자 페이지에서 확인해주세요)';
+          }
+        } catch (e) {
+          console.warn('이메일 이미지 압축 실패:', e);
+          emailCompressedReceipt = '(이미지 처리 중 오류 발생)';
+        }
+      }
+
+      // 2. Save quote to Firestore FIRST (Mission Critical)
+      const quotePath = 'quotes';
+      // DB에는 800KB 이하인 이미지를 저장 (관리자용)
+      const finalDbReceipt = dbCompressedReceipt.length > 950000 ? '' : dbCompressedReceipt;
+      
+      const now = new Date();
+      const dateStr = 
+        String(now.getFullYear()) + 
+        String(now.getMonth() + 1).padStart(2, '0') + 
+        String(now.getDate()).padStart(2, '0') + 
+        String(now.getHours()).padStart(2, '0') + 
+        String(now.getMinutes()).padStart(2, '0') + 
+        String(now.getSeconds()).padStart(2, '0');
+      
+      const customId = dateStr;
+      
+      const quoteData = {
         ...templateParams,
+        receipt_image: finalDbReceipt,
         userId: auth.currentUser?.uid || null,
         timestamp: new Date().toISOString(),
         serverTimestamp: serverTimestamp(),
         status: '접수확인'
-      });
+      };
 
-      alert('견적 문의가 성공적으로 전송되었습니다!');
-      setIsQuoteModalOpen(false);
-      setQuoteForm({ from_name: '', email: '', phone: '', golf_courses: '', travel_period: '', message: '' });
-    } catch (error: any) {
-      console.error('전송 실패:', error);
-      if (error.text) {
-        alert(`전송 실패: ${error.text}`);
-      } else {
-        alert('전송 실패. 설정을 확인해주세요.');
+      try {
+        console.log('Firestore 저장 시도:', quotePath, customId);
+        await setDoc(doc(db, quotePath, customId), quoteData);
+        console.log('Firestore 저장 성공');
+      } catch (fsError: any) {
+        console.error('Firestore 저장 실패:', fsError);
+        handleFirestoreError(fsError, OperationType.CREATE, quotePath);
       }
+
+      // 3. Try to send email via EmailJS AFTER saving to Firestore
+      try {
+        console.log('EmailJS 전송 시도 (50KB 제한 및 수신자 확인)');
+        const emailResponse = await emailjs.send(serviceId, templateId, {
+          ...templateParams,
+          to_email: 'cskim1747@gmail.com', // Explicitly reinforce recipient
+          receiver: 'cskim1747@gmail.com',
+          receipt_image: emailCompressedReceipt
+        }, publicKey);
+        console.log('EmailJS 성공:', emailResponse.status, emailResponse.text);
+      } catch (emailError: any) {
+        console.error('EmailJS 최종 실패:', emailError);
+        // DB 저장이 성공했다면 사용자에게는 성공을 알림 (메일은 관리자가 DB에서 확인 가능)
+      }
+
+      // 4. Show SUCCESS message explicitly
+      setSuccessMessage('상담 신청이 완료되었습니다. 감사합니다.');
+      setShowSuccessModal(true);
+      setIsQuoteModalOpen(false);
+      setQuoteForm({ 
+        from_name: '', 
+        email: '', 
+        phone: '', 
+        golf_courses: '', 
+        travel_period: '', 
+        flight_info: '싱가폴 공항 도착 송영차 필요',
+        accommodation_info: '호텔 정보 제공 요청',
+        message: '' 
+      });
+      console.log('견적 프로세스 완료');
+    } catch (error: any) {
+      console.error('견적 신청 전체 실패:', error);
+      
+      let errorMessage = '전송 실패. 설정을 확인해주세요.';
+      
+      if (error && typeof error === 'object' && error.text) {
+        errorMessage = `이메일 서비스 오류: ${error.text}`;
+      } else if (error && error.message) {
+        try {
+          const parsed = JSON.parse(error.message);
+          if (parsed.error) {
+             errorMessage = `데이터베이스 저장 실패: ${parsed.error}`;
+          }
+        } catch (e) {
+          errorMessage = error.message;
+        }
+      }
+      
+      setSuccessMessage(errorMessage);
+      setShowSuccessModal(true);
     } finally {
       setIsSending(false);
     }
@@ -2276,6 +2413,73 @@ const Booking = () => {
                   />
                 </div>
 
+                <div className="space-y-2 border-t border-white/5 pt-3 mt-3">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">3. 항공편 (공항 이동 차량)</label>
+                  <div className="grid grid-cols-1 gap-2 ml-2">
+                    {[
+                      '싱가폴 공항 도착 송영차 필요',
+                      'KL 공항 경유 세나이공항 도착 차량 필요',
+                      '차량 불필요(알아서 이동)'
+                    ].map((option) => (
+                      <label key={option} className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center">
+                          <input
+                            type="radio"
+                            name="flight_info"
+                            value={option}
+                            checked={quoteForm.flight_info === option}
+                            onChange={(e) => setQuoteForm({ ...quoteForm, flight_info: e.target.value })}
+                            className="sr-only"
+                          />
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border-2 transition-all",
+                            quoteForm.flight_info === option ? "border-lime bg-lime" : "border-white/20 group-hover:border-white/40"
+                          )} />
+                          {quoteForm.flight_info === option && (
+                            <div className="absolute w-1.5 h-1.5 rounded-full bg-forest" />
+                          )}
+                        </div>
+                        <span className={cn("text-xs transition-colors", quoteForm.flight_info === option ? "text-lime font-bold" : "text-white/60")}>
+                          {option}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t border-white/5 pt-3">
+                  <label className="text-[11px] tracking-widest uppercase opacity-40 ml-2">4. 숙소</label>
+                  <div className="grid grid-cols-1 gap-2 ml-2">
+                    {[
+                      '호텔 정보 제공 요청',
+                      '숙소 불필요(알아서 숙소)'
+                    ].map((option) => (
+                      <label key={option} className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center">
+                          <input
+                            type="radio"
+                            name="accommodation_info"
+                            value={option}
+                            checked={quoteForm.accommodation_info === option}
+                            onChange={(e) => setQuoteForm({ ...quoteForm, accommodation_info: e.target.value })}
+                            className="sr-only"
+                          />
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border-2 transition-all",
+                            quoteForm.accommodation_info === option ? "border-lime bg-lime" : "border-white/20 group-hover:border-white/40"
+                          )} />
+                          {quoteForm.accommodation_info === option && (
+                            <div className="absolute w-1.5 h-1.5 rounded-full bg-forest" />
+                          )}
+                        </div>
+                        <span className={cn("text-xs transition-colors", quoteForm.accommodation_info === option ? "text-lime font-bold" : "text-white/60")}>
+                          {option}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="p-3 bg-lime/10 rounded-2xl border border-lime/20">
                   <div className="flex justify-between items-center mb-0.5">
                     <span className="text-[11px] tracking-widest uppercase opacity-60">선택 코스</span>
@@ -2311,6 +2515,30 @@ const Booking = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-forest border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl"
+          >
+            <div className="w-16 h-16 bg-lime/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="text-lime w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-white">알림</h3>
+            <p className="text-white/70 mb-8 whitespace-pre-line leading-relaxed">
+              {successMessage}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-4 bg-lime text-forest font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+            >
+              확인
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2363,6 +2591,8 @@ interface QuoteRequest {
   phone: string;
   golf_courses: string;
   travel_period: string;
+  flight_info?: string;
+  accommodation_info?: string;
   message: string;
   total_myr: string;
   total_krw: string;
@@ -2626,9 +2856,15 @@ const Admin = () => {
     }
   };
 
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   const handleGoogleLogin = async () => {
+    if (isLoggingIn) return;
+
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+    
+    setIsLoggingIn(true);
     try {
       const result = await signInWithPopup(auth, provider);
       const email = result.user.email;
@@ -2642,9 +2878,15 @@ const Admin = () => {
           navigate('/');
         }, 1500);
       }
-    } catch (error) {
-      console.error('Google Login Error:', error);
-      showAlert('로그인에 실패했습니다.');
+    } catch (error: any) {
+      if (error.code === 'auth/cancelled-popup-request') {
+        console.warn('Google Login popup request was cancelled by a subsequent request.');
+      } else {
+        console.error('Google Login Error:', error);
+        showAlert('로그인에 실패했습니다.');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -2821,6 +3063,8 @@ const Admin = () => {
       '이메일주소': quote.email,
       '선택한 골프장': quote.golf_courses,
       '희망 일정': quote.travel_period,
+      '항공편': quote.flight_info || '',
+      '숙소': quote.accommodation_info || '',
       '비용 (RM)': quote.total_myr,
       '비용 (₩)': quote.total_krw,
       '처리상태': quote.status || '접수확인',
@@ -5475,6 +5719,18 @@ const Admin = () => {
                       <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">희망 일정</label>
                       <p className="text-base">{selectedQuote.travel_period || (selectedQuote as any).schedule?.split(' (')[0]}</p>
                     </div>
+                    {selectedQuote.flight_info && (
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">항공편 정보</label>
+                        <p className="text-base font-medium text-lime">{selectedQuote.flight_info}</p>
+                      </div>
+                    )}
+                    {selectedQuote.accommodation_info && (
+                      <div>
+                        <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">숙소 정보</label>
+                        <p className="text-base font-medium text-lime">{selectedQuote.accommodation_info}</p>
+                      </div>
+                    )}
                     {selectedQuote.message && (
                       <div>
                         <label className="text-xs tracking-widest uppercase opacity-40 block mb-1">추가 메시지</label>
@@ -6510,15 +6766,18 @@ const AppContent = () => {
 
 export default function App() {
   useEffect(() => {
-    // Test connection - we don't need to sign in anonymously if rules allow public read/create
     const testConnection = async () => {
       try {
-        // Just a simple check if Firebase is initialized
-        if (!auth.app) {
-          console.error("Firebase not initialized");
+        // AI Studio 환경 가이드에 따라 getDocFromServer를 사용하여 연결 상태를 테스트합니다.
+        await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log("Firebase/Firestore connection successful");
+      } catch (error: any) {
+        if(error && error.message && error.message.includes('the client is offline')) {
+          console.error("Firestore backend is unreachable. The client will operate in offline mode.");
+        } else {
+          // 문서가 존재하지 않아도 서버 응답을 받았다면 연결 자체는 성공한 것입니다.
+          console.log("Firestore connection test response received");
         }
-      } catch (error) {
-        console.error("Firebase check error:", error);
       }
     };
     testConnection();
